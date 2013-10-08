@@ -1,5 +1,5 @@
 /*
- * Copyright © 2011 Intel Corporation
+ * Copyright © 2011, 2013 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -46,6 +46,142 @@
 static struct gbm_device *devices[16];
 
 static int device_num = 0;
+
+static int
+get_mode_fb_size(const struct gbm_bo_mode *mode,
+                 uint32_t *width,
+                 uint32_t *height,
+                 uint32_t *eye_width,
+                 uint32_t *eye_height)
+{
+   if (mode->hdisplay <= 0 ||
+       mode->hsync_start < mode->hdisplay ||
+       mode->hsync_end < mode->hsync_start ||
+       mode->htotal < mode->hsync_end ||
+       mode->vdisplay <= 0 ||
+       mode->vsync_start < mode->vdisplay ||
+       mode->vsync_end < mode->vsync_start ||
+       mode->vtotal < mode->vsync_end)
+      return -1;
+
+   switch (mode->layout) {
+   case GBM_BO_STEREO_LAYOUT_NONE:
+      *width = mode->hdisplay;
+      *height = mode->vdisplay;
+      *eye_width = mode->hdisplay;
+      *eye_height = mode->vdisplay;
+      return 0;
+
+   case GBM_BO_STEREO_LAYOUT_FRAME_PACKING:
+   {
+      int vactive_space = mode->vtotal - mode->vdisplay;
+
+      *width = mode->hdisplay;
+      *height = 2 * mode->vdisplay + vactive_space;
+      *eye_width = mode->hdisplay;
+      *eye_height = mode->vdisplay;
+      return 0;
+   }
+
+   case GBM_BO_STEREO_LAYOUT_LINE_ALTERNATIVE:
+      *width = mode->hdisplay;
+      *height = mode->vdisplay * 2;
+      *eye_width = mode->hdisplay;
+      *eye_height = mode->vdisplay;
+      return 0;
+
+   case GBM_BO_STEREO_LAYOUT_SIDE_BY_SIDE_FULL:
+      *width = mode->hdisplay * 2;
+      *height = mode->vdisplay;
+      *eye_width = mode->hdisplay;
+      *eye_height = mode->vdisplay;
+      return 0;
+
+   case GBM_BO_STEREO_LAYOUT_TOP_AND_BOTTOM:
+      *width = mode->hdisplay;
+      *height = mode->vdisplay;
+      *eye_width = mode->hdisplay;
+      *eye_height = mode->vdisplay / 2;
+
+      /* The height must be a multiple of two or this won't make sense */
+      if ((*height & 1))
+         return -1;
+      return 0;
+
+   case GBM_BO_STEREO_LAYOUT_SIDE_BY_SIDE_HALF:
+      *width = mode->hdisplay;
+      *height = mode->vdisplay;
+      *eye_width = mode->hdisplay / 2;
+      *eye_height = mode->vdisplay;
+
+      /* The width must be a multiple of two or this won't make sense */
+      if ((*width & 1))
+         return -1;
+      return 0;
+   }
+
+   return -1;
+}
+
+static int
+set_eye_layout_for_mode(struct gbm_bo *bo,
+                        const struct gbm_bo_mode *mode)
+{
+   bo->left_eye_x = 0;
+   bo->left_eye_y = 0;
+
+   switch (mode->layout) {
+   case GBM_BO_STEREO_LAYOUT_NONE:
+      bo->eye_stride = bo->stride;
+      bo->right_eye_x = 0;
+      bo->right_eye_y = 0;
+      return 0;
+
+   case GBM_BO_STEREO_LAYOUT_FRAME_PACKING:
+   {
+      int vactive_space = mode->vtotal - mode->vdisplay;
+
+      bo->eye_stride = bo->stride;
+      bo->right_eye_x = 0;
+      bo->right_eye_y = mode->vdisplay + vactive_space;
+      return 0;
+   }
+
+   case GBM_BO_STEREO_LAYOUT_LINE_ALTERNATIVE:
+      bo->eye_stride = bo->stride * 2;
+      bo->right_eye_x = 0;
+      bo->right_eye_y = 1;
+      return 0;
+
+   case GBM_BO_STEREO_LAYOUT_SIDE_BY_SIDE_FULL:
+      bo->eye_stride = bo->stride;
+      bo->right_eye_x = mode->hdisplay;
+      bo->right_eye_y = 0;
+      return 0;
+
+   case GBM_BO_STEREO_LAYOUT_TOP_AND_BOTTOM:
+      /* The height must be a multiple of two or this won't make sense */
+      if ((mode->vdisplay & 1))
+         return -1;
+
+      bo->eye_stride = bo->stride;
+      bo->right_eye_x = 0;
+      bo->right_eye_y = mode->vdisplay / 2;
+      return 0;
+
+   case GBM_BO_STEREO_LAYOUT_SIDE_BY_SIDE_HALF:
+      /* The width must be a multiple of two or this won't make sense */
+      if ((mode->hdisplay & 1))
+         return -1;
+
+      bo->eye_stride = bo->stride;
+      bo->right_eye_x = mode->hdisplay / 2;
+      bo->right_eye_y = 0;
+      return 0;
+   }
+
+   return -1;
+}
 
 /** Returns the file description for the gbm device
  *
@@ -203,6 +339,48 @@ gbm_bo_get_stride(struct gbm_bo *bo)
    return bo->stride;
 }
 
+GBM_EXPORT uint32_t
+gbm_bo_get_eye_width(struct gbm_bo *bo)
+{
+   return bo->eye_width;
+}
+
+GBM_EXPORT uint32_t
+gbm_bo_get_eye_height(struct gbm_bo *bo)
+{
+   return bo->eye_height;
+}
+
+GBM_EXPORT uint32_t
+gbm_bo_get_eye_stride(struct gbm_bo *bo)
+{
+   return bo->eye_stride;
+}
+
+GBM_EXPORT uint32_t
+gbm_bo_get_left_eye_x(struct gbm_bo *bo)
+{
+   return bo->left_eye_x;
+}
+
+GBM_EXPORT uint32_t
+gbm_bo_get_left_eye_y(struct gbm_bo *bo)
+{
+   return bo->left_eye_y;
+}
+
+GBM_EXPORT uint32_t
+gbm_bo_get_right_eye_x(struct gbm_bo *bo)
+{
+   return bo->right_eye_x;
+}
+
+GBM_EXPORT uint32_t
+gbm_bo_get_right_eye_y(struct gbm_bo *bo)
+{
+   return bo->right_eye_y;
+}
+
 /** Get the format of the buffer object
  *
  * The format of the pixels in the buffer.
@@ -304,6 +482,23 @@ gbm_bo_destroy(struct gbm_bo *bo)
    bo->gbm->bo_destroy(bo);
 }
 
+static void
+get_dummy_mode(uint32_t width, uint32_t height,
+               uint32_t format,
+               struct gbm_bo_mode *mode)
+{
+   mode->layout = GBM_BO_STEREO_LAYOUT_NONE;
+   mode->hdisplay = width;
+   mode->vdisplay = height;
+   mode->format = format;
+   mode->hsync_start = width;
+   mode->hsync_end = width;
+   mode->htotal = width;
+   mode->vsync_start = height;
+   mode->vsync_end = height;
+   mode->vtotal = height;
+}
+
 /**
  * Allocate a buffer object for the given dimensions
  *
@@ -325,14 +520,44 @@ gbm_bo_create(struct gbm_device *gbm,
               uint32_t width, uint32_t height,
               uint32_t format, uint32_t usage)
 {
-   if (width == 0 || height == 0)
+   struct gbm_bo_mode mode;
+
+   get_dummy_mode(width, height, format, &mode);
+
+   return gbm_bo_create_with_mode(gbm, &mode, usage);
+}
+
+GBM_EXPORT struct gbm_bo *
+gbm_bo_create_with_mode(struct gbm_device *gbm,
+                        const struct gbm_bo_mode *mode,
+                        uint32_t usage)
+{
+   struct gbm_bo *bo;
+   uint32_t fb_width, fb_height, eye_width, eye_height;
+
+   if (get_mode_fb_size(mode,
+                        &fb_width, &fb_height,
+                        &eye_width, &eye_height) == -1)
       return NULL;
 
    if (usage & GBM_BO_USE_CURSOR_64X64 &&
-       (width != 64 || height != 64))
+       (fb_width != 64 || fb_height != 64 ||
+        mode->layout != GBM_BO_STEREO_LAYOUT_NONE))
       return NULL;
 
-   return gbm->bo_create(gbm, width, height, format, usage);
+   bo = gbm->bo_create(gbm, fb_width, fb_height, mode->format, usage);
+
+   if (bo) {
+      bo->eye_width = eye_width;
+      bo->eye_height = eye_height;
+
+      if (set_eye_layout_for_mode(bo, mode) == -1) {
+         gbm_bo_destroy(bo);
+         return NULL;
+      }
+   }
+
+   return bo;
 }
 
 /**
@@ -385,7 +610,35 @@ gbm_surface_create(struct gbm_device *gbm,
                    uint32_t width, uint32_t height,
 		   uint32_t format, uint32_t flags)
 {
-   return gbm->surface_create(gbm, width, height, format, flags);
+   struct gbm_bo_mode mode;
+
+   get_dummy_mode(width, height, format, &mode);
+
+   return gbm_surface_create_with_mode(gbm, &mode, flags);
+}
+
+GBM_EXPORT struct gbm_surface *
+gbm_surface_create_with_mode(struct gbm_device *gbm,
+                             const struct gbm_bo_mode *mode,
+                             uint32_t flags)
+{
+   struct gbm_surface *surface;
+   uint32_t fb_width, fb_height, eye_width, eye_height;
+
+   if (get_mode_fb_size(mode,
+                        &fb_width, &fb_height,
+                        &eye_width, &eye_height) == -1)
+      return NULL;
+
+   surface = gbm->surface_create(gbm, fb_width, fb_height, mode->format, flags);
+
+   if (surface) {
+      surface->mode = *mode;
+      surface->eye_width = eye_width;
+      surface->eye_height = eye_height;
+   }
+
+   return surface;
 }
 
 /**

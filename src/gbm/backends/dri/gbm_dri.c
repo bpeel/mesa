@@ -412,6 +412,8 @@ gbm_dri_bo_import(struct gbm_device *gbm,
 {
    struct gbm_dri_device *dri = gbm_dri_device(gbm);
    struct gbm_dri_bo *bo;
+   enum gbm_bo_stereo_layout stereo_layout = GBM_BO_STEREO_LAYOUT_NONE;
+   uint32_t eye_padding = 0;
    __DRIimage *image;
    unsigned dri_use = 0;
    int gbm_format;
@@ -451,6 +453,10 @@ gbm_dri_bo_import(struct gbm_device *gbm,
       default:
          return NULL;
       }
+
+      stereo_layout = wb->stereo_layout;
+      eye_padding = wb->eye_padding;
+
       break;
    }
 #endif
@@ -501,6 +507,50 @@ gbm_dri_bo_import(struct gbm_device *gbm,
                           (int*)&bo->base.base.stride);
    dri->image->queryImage(bo->image, __DRI_IMAGE_ATTRIB_HANDLE,
                           &bo->base.base.handle.s32);
+
+   bo->base.base.left_eye_x = 0;
+   bo->base.base.left_eye_y = 0;
+
+   switch (stereo_layout) {
+   case GBM_BO_STEREO_LAYOUT_NONE:
+      bo->base.base.eye_width = bo->base.base.width;
+      bo->base.base.eye_height = bo->base.base.height;
+      bo->base.base.eye_stride = bo->base.base.stride;
+      bo->base.base.right_eye_x = 0;
+      bo->base.base.right_eye_y = 0;
+      break;
+
+   case GBM_BO_STEREO_LAYOUT_FRAME_PACKING:
+   case GBM_BO_STEREO_LAYOUT_TOP_AND_BOTTOM:
+      bo->base.base.eye_width = bo->base.base.width;
+      bo->base.base.eye_height = (bo->base.base.height - eye_padding) / 2;
+      bo->base.base.eye_stride = bo->base.base.stride;
+      bo->base.base.right_eye_x = 0;
+      bo->base.base.right_eye_y = bo->base.base.eye_height + eye_padding;
+      break;
+
+   case GBM_BO_STEREO_LAYOUT_LINE_ALTERNATIVE:
+      bo->base.base.eye_width = bo->base.base.width;
+      bo->base.base.eye_height = bo->base.base.height / 2;
+      bo->base.base.eye_stride = bo->base.base.stride * 2;
+      bo->base.base.right_eye_x = 0;
+      bo->base.base.right_eye_y = 1;
+      break;
+
+   case GBM_BO_STEREO_LAYOUT_SIDE_BY_SIDE_FULL:
+   case GBM_BO_STEREO_LAYOUT_SIDE_BY_SIDE_HALF:
+      bo->base.base.eye_width = bo->base.base.width / 2;
+      bo->base.base.eye_height = bo->base.base.height;
+      bo->base.base.eye_stride = bo->base.base.stride;
+      bo->base.base.right_eye_x = bo->base.base.eye_width;
+      bo->base.base.right_eye_y = 0;
+      break;
+
+   default:
+      dri->image->destroyImage(bo->image);
+      free(bo);
+      return NULL;
+   }
 
    return &bo->base.base;
 }

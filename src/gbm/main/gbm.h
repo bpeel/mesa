@@ -1,5 +1,5 @@
 /*
- * Copyright © 2011 Intel Corporation
+ * Copyright © 2011, 2013 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -74,6 +74,27 @@ enum gbm_bo_format {
    GBM_BO_FORMAT_XRGB8888, 
    /** ARGB with 8 bits per channel in a 32 bit value */
    GBM_BO_FORMAT_ARGB8888
+};
+
+/*
+ * Describes a layout used in a stereoscopic buffer. The names match
+ * those used in the HDMI spec and the Linux DRM header. The values match
+ * the DRM header.
+ */
+enum gbm_bo_stereo_layout {
+   GBM_BO_STEREO_LAYOUT_NONE,
+   GBM_BO_STEREO_LAYOUT_FRAME_PACKING = 1,
+   GBM_BO_STEREO_LAYOUT_LINE_ALTERNATIVE = 3,
+   GBM_BO_STEREO_LAYOUT_SIDE_BY_SIDE_FULL = 4,
+   GBM_BO_STEREO_LAYOUT_TOP_AND_BOTTOM = 7,
+   GBM_BO_STEREO_LAYOUT_SIDE_BY_SIDE_HALF = 8,
+};
+
+struct gbm_bo_mode {
+   enum gbm_bo_stereo_layout layout;
+   uint16_t hdisplay, hsync_start, hsync_end, htotal;
+   uint16_t vdisplay, vsync_start, vsync_end, vtotal;
+   uint32_t format;
 };
 
 #define __gbm_fourcc_code(a,b,c,d) ((uint32_t)(a) | ((uint32_t)(b) << 8) | \
@@ -230,6 +251,11 @@ gbm_bo_create(struct gbm_device *gbm,
               uint32_t width, uint32_t height,
               uint32_t format, uint32_t flags);
 
+struct gbm_bo *
+gbm_bo_create_with_mode(struct gbm_device *gbm,
+                        const struct gbm_bo_mode *mode,
+                        uint32_t flags);
+
 #define GBM_BO_IMPORT_WL_BUFFER         0x5501
 #define GBM_BO_IMPORT_EGL_IMAGE         0x5502
 
@@ -245,6 +271,27 @@ gbm_bo_get_height(struct gbm_bo *bo);
 
 uint32_t
 gbm_bo_get_stride(struct gbm_bo *bo);
+
+uint32_t
+gbm_bo_get_eye_width(struct gbm_bo *bo);
+
+uint32_t
+gbm_bo_get_eye_height(struct gbm_bo *bo);
+
+uint32_t
+gbm_bo_get_eye_stride(struct gbm_bo *bo);
+
+uint32_t
+gbm_bo_get_left_eye_x(struct gbm_bo *bo);
+
+uint32_t
+gbm_bo_get_left_eye_y(struct gbm_bo *bo);
+
+uint32_t
+gbm_bo_get_right_eye_x(struct gbm_bo *bo);
+
+uint32_t
+gbm_bo_get_right_eye_y(struct gbm_bo *bo);
 
 uint32_t
 gbm_bo_get_format(struct gbm_bo *bo);
@@ -272,6 +319,11 @@ struct gbm_surface *
 gbm_surface_create(struct gbm_device *gbm,
                    uint32_t width, uint32_t height,
 		   uint32_t format, uint32_t flags);
+
+struct gbm_surface *
+gbm_surface_create_with_mode(struct gbm_device *gbm,
+                             const struct gbm_bo_mode *mode,
+                             uint32_t flags);
 
 struct gbm_bo *
 gbm_surface_lock_front_buffer(struct gbm_surface *surface);

@@ -92,6 +92,11 @@ struct gbm_bo {
    uint32_t height;
    uint32_t stride;
    uint32_t format;
+   uint32_t eye_width;
+   uint32_t eye_height;
+   uint32_t eye_stride;
+   uint32_t left_eye_x, left_eye_y;
+   uint32_t right_eye_x, right_eye_y;
    union gbm_bo_handle  handle;
    void *user_data;
    void (*destroy_user_data)(struct gbm_bo *, void *);
@@ -101,8 +106,11 @@ struct gbm_surface {
    struct gbm_device *gbm;
    uint32_t width;
    uint32_t height;
+   uint32_t eye_width;
+   uint32_t eye_height;
    uint32_t format;
    uint32_t flags;
+   struct gbm_bo_mode mode;
 };
 
 struct gbm_backend {
