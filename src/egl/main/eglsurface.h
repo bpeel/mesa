@@ -71,6 +71,9 @@ struct _egl_surface
 
    EGLint SwapInterval;
 
+   EGLint MultiviewViewCountRequested;
+   EGLint MultiviewViewCountAllocated;
+
    /* True if the surface is bound to an OpenGL ES texture */
    EGLBoolean BoundToTexture;
 

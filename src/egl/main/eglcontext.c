@@ -411,6 +411,23 @@ _eglQueryContextRenderBuffer(_EGLContext *ctx)
    return rb;
 }
 
+static EGLBoolean
+_eglQueryContextMultiviewViewCount(_EGLDisplay *disp,
+                                   _EGLContext *c,
+                                   EGLint *value)
+{
+   _EGLSurface *surf = c->DrawSurface;
+
+   if (!disp->Extensions.EXT_multiview_window)
+      return _eglError(EGL_BAD_ATTRIBUTE, "eglQueryContext");
+
+   if (surf == NULL)
+      *value = 1;
+   else
+      *value = surf->MultiviewViewCountAllocated;
+
+   return EGL_TRUE;
+}
 
 EGLBoolean
 _eglQueryContext(_EGLDriver *drv, _EGLDisplay *dpy, _EGLContext *c,
@@ -437,6 +454,8 @@ _eglQueryContext(_EGLDriver *drv, _EGLDisplay *dpy, _EGLContext *c,
    case EGL_RENDER_BUFFER:
       *value = _eglQueryContextRenderBuffer(c);
       break;
+   case EGL_MULTIVIEW_VIEW_COUNT_EXT:
+      return _eglQueryContextMultiviewViewCount(dpy, c, value);
    default:
       return _eglError(EGL_BAD_ATTRIBUTE, "eglQueryContext");
    }

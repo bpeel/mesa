@@ -256,6 +256,18 @@ _eglParseSurfaceAttribList(_EGLSurface *surf, const EGLint *attrib_list)
          }
          surf->MipmapTexture = !!val;
          break;
+      case EGL_MULTIVIEW_VIEW_COUNT_EXT:
+         if (!dpy->Extensions.EXT_multiview_window ||
+             type != EGL_WINDOW_BIT) {
+            err = EGL_BAD_ATTRIBUTE;
+            break;
+         }
+         if (val < 1) {
+            err = EGL_BAD_PARAMETER;
+            break;
+         }
+         surf->MultiviewViewCountRequested = val;
+         break;
       /* no pixmap surface specific attributes */
       default:
          err = EGL_BAD_ATTRIBUTE;
@@ -338,6 +350,9 @@ _eglInitSurface(_EGLSurface *surf, _EGLDisplay *dpy, EGLint type,
 
    surf->PostSubBufferSupportedNV = EGL_FALSE;
 
+   surf->MultiviewViewCountRequested = 1;
+   surf->MultiviewViewCountAllocated = 1;
+
    /* the default swap interval is 1 */
    _eglClampSwapInterval(surf, 1);
 
@@ -416,6 +431,15 @@ _eglQuerySurface(_EGLDriver *drv, _EGLDisplay *dpy, _EGLSurface *surface,
          return EGL_FALSE;
       }
       *value = drv->API.QueryBufferAge(drv, dpy, surface);
+      break;
+   case EGL_MULTIVIEW_VIEW_COUNT_EXT:
+      if (!dpy->Extensions.EXT_multiview_window) {
+         _eglError(EGL_BAD_ATTRIBUTE, "eglQuerySurface");
+         return EGL_FALSE;
+      }
+      /* According to the spec this always returns the value requested rather
+       * than the actual value allocated */
+      *value = surface->MultiviewViewCountRequested;
       break;
    default:
       _eglError(EGL_BAD_ATTRIBUTE, "eglQuerySurface");
