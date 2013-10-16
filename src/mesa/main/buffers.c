@@ -438,6 +438,103 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
       ctx->Driver.DrawBuffer(ctx, n > 0 ? buffers[0] : GL_NONE);
 }
 
+void GLAPIENTRY
+_mesa_DrawBuffersIndexedEXT(GLint n,
+                            const GLenum *location,
+                            const GLint *indices)
+{
+   GLint output;
+   GLbitfield usedBufferMask, supportedMask;
+   GLbitfield destMask[MAX_DRAW_BUFFERS];
+   GLenum buffers[MAX_DRAW_BUFFERS];
+   GET_CURRENT_CONTEXT(ctx);
+
+   FLUSH_VERTICES(ctx, 0);
+
+   if (n < 0 || n > (GLsizei) ctx->Const.MaxDrawBuffers) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glDrawBuffersIndexedEXT(n)");
+      return;
+   }
+
+   supportedMask = supported_buffer_bitmask(ctx, ctx->DrawBuffer);
+   usedBufferMask = 0x0;
+
+   /* complicated error checking... */
+   for (output = 0; output < n; output++) {
+      if (location[output] == GL_NONE) {
+         destMask[output] = 0x0;
+         buffers[output] = GL_NONE;
+      }
+      else {
+         if (_mesa_is_user_fbo(ctx->DrawBuffer)) {
+            if (location[output] != GL_COLOR_ATTACHMENT_EXT ||
+                indices[output] < 0 ||
+                indices[output] >= ctx->Const.MaxDrawBuffers) {
+               _mesa_error(ctx, GL_INVALID_OPERATION,
+                           "glDrawBuffersIndexedEXT(buffer)");
+               return;
+            }
+
+            destMask[output] = BUFFER_BIT_COLOR0 << indices[output];
+            buffers[output] = GL_COLOR_ATTACHMENT0_EXT + indices[output];
+         } else {
+            if (location[output] != GL_MULTIVIEW_EXT ||
+                indices[output] < 0 || indices[output] > 1) {
+               _mesa_error(ctx, GL_INVALID_OPERATION,
+                           "glDrawBuffersIndexedEXT(buffer)");
+               return;
+            }
+
+            if (ctx->DrawBuffer->Visual.doubleBufferMode) {
+               if (indices[output] == 0) {
+                  destMask[output] = BUFFER_BIT_BACK_LEFT;
+                  buffers[output] = GL_BACK_LEFT;
+               } else {
+                  destMask[output] = BUFFER_BIT_BACK_RIGHT;
+                  buffers[output] = GL_BACK_RIGHT;
+               }
+            } else {
+               if (indices[output] == 0) {
+                  destMask[output] = BUFFER_BIT_FRONT_LEFT;
+                  buffers[output] = GL_FRONT_LEFT;
+               } else {
+                  destMask[output] = BUFFER_BIT_FRONT_RIGHT;
+                  buffers[output] = GL_FRONT_RIGHT;
+               }
+            }
+         }
+
+         destMask[output] &= supportedMask;
+         if (destMask[output] == 0) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glDrawBuffersIndexedEXT(unsupported buffer)");
+            return;
+         }
+
+         if (destMask[output] & usedBufferMask) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glDrawBuffersIndexedEXT(duplicated buffer)");
+            return;
+         }
+
+         /* update bitmask */
+         usedBufferMask |= destMask[output];
+      }
+   }
+
+   /* OK, if we get here, there were no errors so set the new state */
+   _mesa_drawbuffers(ctx, n, buffers, destMask);
+
+   /*
+    * Call device driver function.  Note that n can be equal to 0,
+    * in which case we don't want to reference buffers[0], which
+    * may not be valid.
+    */
+   if (ctx->Driver.DrawBuffers)
+      ctx->Driver.DrawBuffers(ctx, n, buffers);
+   else if (ctx->Driver.DrawBuffer)
+      ctx->Driver.DrawBuffer(ctx, n > 0 ? buffers[0] : GL_NONE);
+}
 
 /**
  * Performs necessary state updates when _mesa_drawbuffers makes an

@@ -208,6 +208,7 @@ static const struct extension extension_table[] = {
    { "GL_EXT_gpu_shader4",                         o(EXT_gpu_shader4),                         GL,             2006 },
    { "GL_EXT_map_buffer_range",                    o(ARB_map_buffer_range),                          ES1 | ES2, 2012 },
    { "GL_EXT_multi_draw_arrays",                   o(dummy_true),                              GLL | ES1 | ES2, 1999 },
+   { "GL_EXT_multiview_draw_buffers",              o(dummy_true),                                         ES2, 2011 },
    { "GL_EXT_packed_depth_stencil",                o(dummy_true),                              GL,             2005 },
    { "GL_EXT_packed_float",                        o(EXT_packed_float),                        GL,             2004 },
    { "GL_EXT_packed_pixels",                       o(dummy_true),                              GLL,            1997 },

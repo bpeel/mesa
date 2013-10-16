@@ -73,6 +73,15 @@ typedef void *GLeglImageOES;
 #endif
 
 
+#ifndef GL_EXT_multiview_draw_buffers
+#define GL_COLOR_ATTACHMENT_EXT                                 0x90F0
+#define GL_MULTIVIEW_EXT                                        0x90F1
+#define GL_DRAW_BUFFER_EXT                                      0x0C01
+#define GL_READ_BUFFER_EXT                                      0x0C02
+#define GL_MAX_MULTIVIEW_BUFFERS_EXT                            0x90F2
+#endif
+
+
 #ifndef GL_PROGRAM_BINARY_LENGTH_OES
 #define GL_PROGRAM_BINARY_LENGTH_OES 0x8741
 #endif

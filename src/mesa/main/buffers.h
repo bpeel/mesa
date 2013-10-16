@@ -43,6 +43,11 @@ _mesa_DrawBuffer( GLenum mode );
 extern void GLAPIENTRY
 _mesa_DrawBuffers(GLsizei n, const GLenum *buffers);
 
+extern void GLAPIENTRY
+_mesa_DrawBuffersIndexedEXT(GLint n,
+                            const GLenum *location,
+                            const GLint *indices);
+
 extern void
 _mesa_drawbuffers(struct gl_context *ctx, GLuint n, const GLenum *buffers,
                   const GLbitfield *destMask);
