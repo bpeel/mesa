@@ -983,12 +983,14 @@ intel_resolve_for_dri2_flush(struct brw_context *brw,
    /* Usually, only the back buffer will need to be downsampled. However,
     * the front buffer will also need it if the user has rendered into it.
     */
-   static const gl_buffer_index buffers[2] = {
+   static const gl_buffer_index buffers[] = {
          BUFFER_BACK_LEFT,
          BUFFER_FRONT_LEFT,
+         BUFFER_BACK_RIGHT,
+         BUFFER_FRONT_RIGHT,
    };
 
-   for (int i = 0; i < 2; ++i) {
+   for (int i = 0; i < ARRAY_SIZE(buffers); ++i) {
       rb = intel_get_renderbuffer(fb, buffers[i]);
       if (rb == NULL || rb->mt == NULL)
          continue;
@@ -1371,12 +1373,14 @@ intel_update_image_buffers(struct brw_context *brw, __DRIdrawable *drawable)
    __DRIscreen *screen = brw->intelScreen->driScrnPriv;
    struct intel_renderbuffer *front_rb;
    struct intel_renderbuffer *back_rb;
+   struct intel_renderbuffer *back_right_rb;
    struct __DRIimageList images;
    unsigned int format;
    uint32_t buffer_mask = 0;
 
    front_rb = intel_get_renderbuffer(fb, BUFFER_FRONT_LEFT);
    back_rb = intel_get_renderbuffer(fb, BUFFER_BACK_LEFT);
+   back_right_rb = intel_get_renderbuffer(fb, BUFFER_BACK_RIGHT);
 
    if (back_rb)
       format = intel_rb_format(back_rb);
@@ -1392,6 +1396,9 @@ intel_update_image_buffers(struct brw_context *brw, __DRIdrawable *drawable)
 
    if (back_rb)
       buffer_mask |= __DRI_IMAGE_BUFFER_BACK;
+
+   if (back_right_rb)
+      buffer_mask |= __DRI_IMAGE_BUFFER_BACK_RIGHT;
 
    (*screen->image.loader->getBuffers) (drawable,
                                         driGLFormatToImageFormat(format),
@@ -1417,5 +1424,14 @@ intel_update_image_buffers(struct brw_context *brw, __DRIdrawable *drawable)
                                 back_rb,
                                 images.back,
                                 __DRI_IMAGE_BUFFER_BACK);
+   }
+   if (images.image_mask & __DRI_IMAGE_BUFFER_BACK_RIGHT) {
+      drawable->w = images.back_right->width;
+      drawable->h = images.back_right->height;
+      intel_update_image_buffer(brw,
+                                drawable,
+                                back_right_rb,
+                                images.back_right,
+                                __DRI_IMAGE_BUFFER_BACK_RIGHT);
    }
 }

@@ -1071,6 +1071,16 @@ intelCreateBuffer(__DRIscreen * driScrnPriv,
       _mesa_add_renderbuffer(fb, BUFFER_BACK_LEFT, &rb->Base.Base);
    }
 
+   if (mesaVis->stereoMode) {
+      rb = intel_create_renderbuffer(rgbFormat, num_samples);
+      _mesa_add_renderbuffer(fb, BUFFER_FRONT_RIGHT, &rb->Base.Base);
+
+      if (mesaVis->doubleBufferMode) {
+         rb = intel_create_renderbuffer(rgbFormat, num_samples);
+         _mesa_add_renderbuffer(fb, BUFFER_BACK_RIGHT, &rb->Base.Base);
+      }
+   }
+
    /*
     * Assert here that the gl_config has an expected depth/stencil bit
     * combination: one of d24/s8, d16/s0, d0/s0. (See intelInitScreen2(),
@@ -1201,6 +1211,43 @@ intel_supported_msaa_modes(const struct intel_screen  *screen)
 }
 
 static __DRIconfig**
+intel_screen_concat_stereoscopic_configs(__DRIconfig **configs)
+{
+   __DRIconfig **new_configs;
+   int n_configs = 0;
+   int i;
+
+   /* Makes a copy of the given array of configs but which is double the size
+    * and has an equivalent stereoscopic version of each config */
+
+   if (configs == NULL || configs[0] == NULL)
+      return configs;
+
+   for (i = 0; configs[i]; i++)
+      n_configs++;
+
+   new_configs = malloc((n_configs * 2 + 1) * sizeof(__DRIconfig *));
+   if (new_configs == NULL)
+      return configs;
+
+   memcpy(new_configs, configs, sizeof(__DRIconfig *) * n_configs);
+
+   for (i = 0; i < n_configs; i++) {
+      __DRIconfig *config = malloc(sizeof(__DRIconfig));
+      if (config == NULL)
+         break;
+      *config = *configs[i];
+      config->modes.stereoMode = GL_TRUE;
+      new_configs[i + n_configs] = config;
+   }
+   new_configs[i + n_configs] = NULL;
+
+   free(configs);
+
+   return new_configs;
+}
+
+static __DRIconfig**
 intel_screen_make_configs(__DRIscreen *dri_screen)
 {
    static const mesa_format formats[] = {
@@ -1325,6 +1372,9 @@ intel_screen_make_configs(__DRIscreen *dri_screen)
                                      false);
       configs = driConcatConfigs(configs, new_configs);
    }
+
+   /* All of the configs can also be used in stereoscopic mode */
+   configs = intel_screen_concat_stereoscopic_configs(configs);
 
    if (configs == NULL) {
       fprintf(stderr, "[%s:%u] Error creating FBConfig!\n", __func__,
