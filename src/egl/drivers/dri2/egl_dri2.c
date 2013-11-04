@@ -127,7 +127,7 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
    struct dri2_egl_config *conf;
    struct dri2_egl_display *dri2_dpy;
    _EGLConfig base;
-   unsigned int attrib, value, double_buffer;
+   unsigned int attrib, value, double_buffer, stereo;
    EGLint key, bind_to_texture_rgb, bind_to_texture_rgba;
    unsigned int dri_masks[4] = { 0, 0, 0, 0 };
    _EGLConfig *matching_config;
@@ -140,6 +140,7 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
    
    i = 0;
    double_buffer = 0;
+   stereo = 0;
    bind_to_texture_rgb = 0;
    bind_to_texture_rgba = 0;
 
@@ -176,6 +177,10 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
       case __DRI_ATTRIB_DOUBLE_BUFFER:
 	 double_buffer = value;
 	 break;
+
+      case __DRI_ATTRIB_STEREO:
+         stereo = value;
+         break;
 
       case __DRI_ATTRIB_RED_MASK:
          dri_masks[0] = value;
@@ -235,38 +240,43 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
    num_configs = _eglFilterArray(disp->Configs, (void **) &matching_config, 1,
                                  (_EGLArrayForEach) dri2_match_config, &base);
 
-   if (num_configs == 1) {
-      conf = (struct dri2_egl_config *) matching_config;
+   assert(num_configs <= 1);
 
-      if (double_buffer && !conf->dri_double_config)
-         conf->dri_double_config = dri_config;
-      else if (!double_buffer && !conf->dri_single_config)
-         conf->dri_single_config = dri_config;
-      else
-         /* a similar config type is already added (unlikely) => discard */
-         return NULL;
-   }
-   else if (num_configs == 0) {
+   if (num_configs < 1) {
       conf = malloc(sizeof *conf);
       if (conf == NULL)
          return NULL;
 
       memcpy(&conf->base, &base, sizeof base);
-      if (double_buffer) {
-         conf->dri_double_config = dri_config;
-         conf->dri_single_config = NULL;
-      } else {
-         conf->dri_single_config = dri_config;
-         conf->dri_double_config = NULL;
-      }
+      memset(&conf->base + 1, 0, sizeof *conf - sizeof base);
       conf->base.SurfaceType = 0;
       conf->base.ConfigID = config_id;
 
       _eglLinkConfig(&conf->base);
+   } else {
+      conf = (struct dri2_egl_config *) matching_config;
    }
-   else {
-      assert(0);
-      return NULL;
+
+   if (stereo) {
+      if (double_buffer) {
+         if (conf->dri_stereo_double_config)
+            return NULL;
+         conf->dri_stereo_double_config = dri_config;
+      } else {
+         if (conf->dri_stereo_single_config)
+            return NULL;
+         conf->dri_stereo_single_config = dri_config;
+      }
+   } else {
+      if (double_buffer) {
+         if (conf->dri_double_config)
+            return NULL;
+         conf->dri_double_config = dri_config;
+      } else {
+         if (conf->dri_single_config)
+            return NULL;
+         conf->dri_single_config = dri_config;
+      }
    }
 
    if (double_buffer) {
