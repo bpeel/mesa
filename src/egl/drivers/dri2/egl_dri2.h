@@ -250,6 +250,7 @@ struct dri2_egl_surface
 #endif
 #ifdef HAVE_DRM_PLATFORM
       struct gbm_bo       *bo;
+      __DRIimage          *left_image, *right_image;
 #endif
       int                 locked;
       int                 age;
