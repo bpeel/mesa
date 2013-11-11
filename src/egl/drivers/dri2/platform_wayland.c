@@ -34,6 +34,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <xf86drm.h>
+#include <assert.h>
 
 #include "egl_dri2.h"
 #include "egl_dri2_fallbacks.h"
@@ -41,6 +42,8 @@
 
 #include <wayland-client.h>
 #include "wayland-drm-client-protocol.h"
+
+#define MIN(a,b) ((a)<(b)?(a):(b))
 
 enum wl_drm_format_flags {
    HAS_ARGB8888 = 1,
@@ -124,9 +127,12 @@ dri2_wl_create_surface(_EGLDriver *drv, _EGLDisplay *disp, EGLint type,
                        const EGLint *attrib_list)
 {
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
-   struct dri2_egl_config *dri2_conf = dri2_egl_config(conf);
+   struct dri2_egl_config *dri2_egl_conf = dri2_egl_config(conf);
    struct wl_egl_window *window = native_window;
    struct dri2_egl_surface *dri2_surf;
+   const __DRIconfig *dri_conf = (type == EGL_WINDOW_BIT ?
+                                  dri2_egl_conf->dri_double_config :
+                                  dri2_egl_conf->dri_single_config);
 
    (void) drv;
 
@@ -156,6 +162,14 @@ dri2_wl_create_surface(_EGLDriver *drv, _EGLDisplay *disp, EGLint type,
 
       dri2_surf->base.Width =  -1;
       dri2_surf->base.Height = -1;
+
+      if (dri2_surf->base.MultiviewViewCountRequested > 1 &&
+          dri2_dpy->wl_drm_version >= 3 &&
+          dri2_dpy->image->base.version >= 9 &&
+          dri2_egl_conf->dri_stereo_double_config != NULL) {
+         dri2_surf->base.MultiviewViewCountAllocated = 2;
+         dri_conf = dri2_egl_conf->dri_stereo_double_config;
+      }
       break;
    default: 
       goto cleanup_surf;
@@ -163,9 +177,7 @@ dri2_wl_create_surface(_EGLDriver *drv, _EGLDisplay *disp, EGLint type,
 
    dri2_surf->dri_drawable = 
       (*dri2_dpy->dri2->createNewDrawable) (dri2_dpy->dri_screen,
-					    type == EGL_WINDOW_BIT ?
-					    dri2_conf->dri_double_config : 
-					    dri2_conf->dri_single_config,
+                                            dri_conf,
 					    dri2_surf);
    if (dri2_surf->dri_drawable == NULL) {
       _eglError(EGL_BAD_ALLOC, "dri2->createNewDrawable");
@@ -238,8 +250,10 @@ dri2_wl_destroy_surface(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *surf)
    for (i = 0; i < ARRAY_SIZE(dri2_surf->color_buffers); i++) {
       if (dri2_surf->color_buffers[i].wl_buffer)
          wl_buffer_destroy(dri2_surf->color_buffers[i].wl_buffer);
-      if (dri2_surf->color_buffers[i].dri_image)
-         dri2_dpy->image->destroyImage(dri2_surf->color_buffers[i].dri_image);
+      if (dri2_surf->color_buffers[i].left_image)
+         dri2_dpy->image->destroyImage(dri2_surf->color_buffers[i].left_image);
+      if (dri2_surf->color_buffers[i].right_image)
+         dri2_dpy->image->destroyImage(dri2_surf->color_buffers[i].right_image);
    }
 
    for (i = 0; i < __DRI_BUFFER_COUNT; i++)
@@ -272,11 +286,14 @@ dri2_wl_release_buffers(struct dri2_egl_surface *dri2_surf)
       if (dri2_surf->color_buffers[i].wl_buffer &&
           !dri2_surf->color_buffers[i].locked)
          wl_buffer_destroy(dri2_surf->color_buffers[i].wl_buffer);
-      if (dri2_surf->color_buffers[i].dri_image)
-         dri2_dpy->image->destroyImage(dri2_surf->color_buffers[i].dri_image);
+      if (dri2_surf->color_buffers[i].left_image)
+         dri2_dpy->image->destroyImage(dri2_surf->color_buffers[i].left_image);
+      if (dri2_surf->color_buffers[i].right_image)
+         dri2_dpy->image->destroyImage(dri2_surf->color_buffers[i].right_image);
 
       dri2_surf->color_buffers[i].wl_buffer = NULL;
-      dri2_surf->color_buffers[i].dri_image = NULL;
+      dri2_surf->color_buffers[i].left_image = NULL;
+      dri2_surf->color_buffers[i].right_image = NULL;
       dri2_surf->color_buffers[i].locked = 0;
    }
 
@@ -285,6 +302,45 @@ dri2_wl_release_buffers(struct dri2_egl_surface *dri2_surf)
           dri2_surf->dri_buffers[i]->attachment != __DRI_BUFFER_BACK_LEFT)
          dri2_dpy->dri2->releaseBuffer(dri2_dpy->dri_screen,
                                        dri2_surf->dri_buffers[i]);
+}
+
+static void
+get_image_size(struct dri2_egl_surface *dri2_surf,
+               int *width, int *height,
+               enum wl_drm_stereo_layout *layout,
+               uint32_t *eye_padding)
+{
+   if (dri2_surf->base.MultiviewViewCountAllocated == 2) {
+      /* Ideally something in one of the Wayland protocols would provide a way
+       * to describe an ideal layout that the compositor can scan out from and
+       * we would aim to use that. Until we have that this code will just
+       * always use frame packing. If the width and height happen to match the
+       * TV that I'm using for testing then we'll use the same eye offset
+       * value that it needs. I don't know how many TVs this will work on */
+
+      *layout = WL_DRM_STEREO_LAYOUT_FRAME_PACKING;
+
+      /* name hdisp hss hse htot vdisp vss vse vtot flags */
+      if (dri2_surf->base.Width == 1920 &&
+          dri2_surf->base.Height == 1080) {
+         /* 1920x1080 1920 2558 2602 2750 1080 1084 1089 1125 0x4005 (3D:FP) */
+         *eye_padding = 1125 - 1080;
+      } else if (dri2_surf->base.Width == 1280 &&
+                 dri2_surf->base.Height == 720) {
+         /* 1280x720 1280 1390 1430 1650 720 725 730 750 0x4005 (3D:FP) */
+         *eye_padding = 750 - 720;
+      } else {
+         *eye_padding = 0;
+      }
+
+      *width = dri2_surf->base.Width;
+      *height = dri2_surf->base.Height * 2 + *eye_padding;
+   } else {
+      *width = dri2_surf->base.Width;
+      *height = dri2_surf->base.Height;
+      *layout = WL_DRM_STEREO_LAYOUT_NONE;
+      *eye_padding = 0;
+   }
 }
 
 static int
@@ -311,31 +367,59 @@ get_back_bo(struct dri2_egl_surface *dri2_surf)
             continue;
          if (dri2_surf->back == NULL)
             dri2_surf->back = &dri2_surf->color_buffers[i];
-         else if (dri2_surf->back->dri_image == NULL)
+         else if (dri2_surf->back->left_image == NULL)
             dri2_surf->back = &dri2_surf->color_buffers[i];
       }
    }
 
    if (dri2_surf->back == NULL)
       return -1;
-   if (dri2_surf->back->dri_image == NULL) {
-      dri2_surf->back->dri_image = 
-         dri2_dpy->image->createImage(dri2_dpy->dri_screen,
-                                      dri2_surf->base.Width,
-                                      dri2_surf->base.Height,
-                                      __DRI_IMAGE_FORMAT_ARGB8888,
-                                      __DRI_IMAGE_USE_SHARE,
-                                      NULL);
+   if (dri2_surf->back->left_image == NULL) {
+      __DRIimage *image;
+      int width, height;
+
+      get_image_size(dri2_surf,
+                     &width, &height,
+                     &dri2_surf->back->stereo_layout,
+                     &dri2_surf->back->eye_padding);
+
+      image = dri2_dpy->image->createImage(dri2_dpy->dri_screen,
+                                           width, height,
+                                           __DRI_IMAGE_FORMAT_ARGB8888,
+                                           __DRI_IMAGE_USE_SHARE,
+                                           NULL);
+
+      if (dri2_surf->base.MultiviewViewCountAllocated == 2) {
+         dri2_surf->back->left_image =
+            dri2_dpy->image->createSubImage(image,
+                                            0, 0, /* x/y */
+                                            dri2_surf->base.Width,
+                                            dri2_surf->base.Height,
+                                            1, /* line_step */
+                                            NULL);
+         dri2_surf->back->right_image =
+            dri2_dpy->image->createSubImage(image,
+                                            0, /* x */
+                                            dri2_surf->base.Height +
+                                            dri2_surf->back->eye_padding,
+                                            dri2_surf->base.Width,
+                                            dri2_surf->base.Height,
+                                            1, /* line_step */
+                                            NULL);
+         dri2_dpy->image->destroyImage(image);
+      } else {
+         dri2_surf->back->left_image = image;
+      }
+
       dri2_surf->back->age = 0;
    }
-   if (dri2_surf->back->dri_image == NULL)
+   if (dri2_surf->back->left_image == NULL)
       return -1;
 
    dri2_surf->back->locked = 1;
 
    return 0;
 }
-
 
 static void
 back_bo_to_dri_buffer(struct dri2_egl_surface *dri2_surf, __DRIbuffer *buffer)
@@ -345,7 +429,7 @@ back_bo_to_dri_buffer(struct dri2_egl_surface *dri2_surf, __DRIbuffer *buffer)
    __DRIimage *image;
    int name, pitch;
 
-   image = dri2_surf->back->dri_image;
+   image = dri2_surf->back->left_image;
 
    dri2_dpy->image->queryImage(image, __DRI_IMAGE_ATTRIB_NAME, &name);
    dri2_dpy->image->queryImage(image, __DRI_IMAGE_ATTRIB_STRIDE, &pitch);
@@ -411,9 +495,13 @@ update_buffers(struct dri2_egl_surface *dri2_surf)
       if (!dri2_surf->color_buffers[i].locked &&
           dri2_surf->color_buffers[i].wl_buffer) {
          wl_buffer_destroy(dri2_surf->color_buffers[i].wl_buffer);
-         dri2_dpy->image->destroyImage(dri2_surf->color_buffers[i].dri_image);
+         dri2_dpy->image->destroyImage(dri2_surf->color_buffers[i].left_image);
+         if (dri2_surf->color_buffers[i].right_image)
+            dri2_dpy->image->destroyImage(dri2_surf->color_buffers[i].
+                                          right_image);
          dri2_surf->color_buffers[i].wl_buffer = NULL;
-         dri2_surf->color_buffers[i].dri_image = NULL;
+         dri2_surf->color_buffers[i].left_image = NULL;
+         dri2_surf->color_buffers[i].right_image = NULL;
       }
    }
 
@@ -503,8 +591,18 @@ image_get_buffers(__DRIdrawable *driDrawable,
    if (update_buffers(dri2_surf) < 0)
       return 0;
 
-   buffers->image_mask = __DRI_IMAGE_BUFFER_BACK;
-   buffers->back = dri2_surf->back->dri_image;
+   buffers->image_mask = 0;
+
+   if ((buffer_mask & __DRI_IMAGE_BUFFER_BACK)) {
+      buffers->image_mask |= __DRI_IMAGE_BUFFER_BACK;
+      buffers->back = dri2_surf->back->left_image;
+   }
+
+   if ((buffer_mask & __DRI_IMAGE_BUFFER_BACK_RIGHT) &&
+       dri2_surf->back->right_image) {
+      buffers->image_mask |= __DRI_IMAGE_BUFFER_BACK_RIGHT;
+      buffers->back_right = dri2_surf->back->right_image;
+   }
 
    return 1;
 }
@@ -549,9 +647,9 @@ create_wl_buffer(struct dri2_egl_surface *dri2_surf)
       return;
 
    if (dri2_dpy->capabilities & WL_DRM_CAPABILITY_PRIME) {
-      dri2_dpy->image->queryImage(dri2_surf->current->dri_image,
+      dri2_dpy->image->queryImage(dri2_surf->current->left_image,
                                   __DRI_IMAGE_ATTRIB_FD, &fd);
-      dri2_dpy->image->queryImage(dri2_surf->current->dri_image,
+      dri2_dpy->image->queryImage(dri2_surf->current->left_image,
                                   __DRI_IMAGE_ATTRIB_STRIDE, &stride);
 
       dri2_surf->current->wl_buffer =
@@ -565,9 +663,9 @@ create_wl_buffer(struct dri2_egl_surface *dri2_surf)
                                     0, 0);
       close(fd);
    } else {
-      dri2_dpy->image->queryImage(dri2_surf->current->dri_image,
+      dri2_dpy->image->queryImage(dri2_surf->current->left_image,
                                   __DRI_IMAGE_ATTRIB_NAME, &name);
-      dri2_dpy->image->queryImage(dri2_surf->current->dri_image,
+      dri2_dpy->image->queryImage(dri2_surf->current->left_image,
                                   __DRI_IMAGE_ATTRIB_STRIDE, &stride);
 
       dri2_surf->current->wl_buffer =
@@ -578,6 +676,12 @@ create_wl_buffer(struct dri2_egl_surface *dri2_surf)
                               stride,
                               dri2_surf->format);
    }
+
+   if (dri2_surf->current->stereo_layout != WL_DRM_STEREO_LAYOUT_NONE)
+      wl_drm_set_buffer_stereo_layout(dri2_dpy->wl_drm,
+                                      dri2_surf->current->wl_buffer,
+                                      dri2_surf->current->stereo_layout,
+                                      dri2_surf->current->eye_padding);
 
    wl_proxy_set_queue((struct wl_proxy *) dri2_surf->current->wl_buffer,
                       dri2_dpy->wl_queue);
@@ -875,11 +979,11 @@ registry_handle_global(void *data, struct wl_registry *registry, uint32_t name,
 {
    struct dri2_egl_display *dri2_dpy = data;
 
-   if (version > 1)
-      version = 2;
    if (strcmp(interface, "wl_drm") == 0) {
+      dri2_dpy->wl_drm_version = MIN(3, version);
       dri2_dpy->wl_drm =
-         wl_registry_bind(registry, name, &wl_drm_interface, version);
+         wl_registry_bind(registry, name, &wl_drm_interface,
+                          dri2_dpy->wl_drm_version);
       wl_drm_add_listener(dri2_dpy->wl_drm, &drm_listener, dri2_dpy);
    }
 }
@@ -1067,6 +1171,7 @@ dri2_initialize_wayland(_EGLDriver *drv, _EGLDisplay *disp)
    disp->Extensions.EXT_buffer_age = EGL_TRUE;
 
    disp->Extensions.EXT_swap_buffers_with_damage = EGL_TRUE;
+   disp->Extensions.EXT_multiview_window = EGL_TRUE;
 
    /* we're supporting EGL 1.4 */
    disp->VersionMajor = 1;

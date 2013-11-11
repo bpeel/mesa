@@ -188,6 +188,7 @@ struct dri2_egl_display
    struct wl_registry       *wl_registry;
    struct wl_drm            *wl_server_drm;
    struct wl_drm            *wl_drm;
+   int                       wl_drm_version;
    struct wl_event_queue    *wl_queue;
    int			     authenticated;
    int			     formats;
@@ -242,15 +243,14 @@ struct dri2_egl_surface
 #if defined(HAVE_WAYLAND_PLATFORM) || defined(HAVE_DRM_PLATFORM)
    __DRIbuffer           *dri_buffers[__DRI_BUFFER_COUNT];
    struct {
+      __DRIimage         *left_image, *right_image;
 #ifdef HAVE_WAYLAND_PLATFORM
       struct wl_buffer   *wl_buffer;
-      __DRIimage         *dri_image;
       enum wl_drm_stereo_layout stereo_layout;
       uint32_t            eye_padding;
 #endif
 #ifdef HAVE_DRM_PLATFORM
       struct gbm_bo       *bo;
-      __DRIimage          *left_image, *right_image;
 #endif
       int                 locked;
       int                 age;
