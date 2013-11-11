@@ -92,6 +92,9 @@ _eglParseImageAttribList(_EGLImageAttribs *attrs, _EGLDisplay *dpy,
       case EGL_WAYLAND_PLANE_WL:
          attrs->PlaneWL = val;
          break;
+      case EGL_MULTIVIEW_VIEW_WL:
+         attrs->MultiviewViewWL = val;
+         break;
 
       case EGL_LINUX_DRM_FOURCC_EXT:
          attrs->DMABufFourCC.Value = val;

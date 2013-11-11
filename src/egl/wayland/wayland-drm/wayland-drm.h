@@ -2,6 +2,7 @@
 #define WAYLAND_DRM_H
 
 #include <wayland-server.h>
+#include "wayland-drm-server-protocol.h"
 
 #ifndef WL_DRM_FORMAT_ENUM
 #define WL_DRM_FORMAT_ENUM
@@ -77,6 +78,8 @@ struct wl_drm_buffer {
         const void *driver_format;
         int32_t offset[3];
         int32_t stride[3];
+        enum wl_drm_stereo_layout stereo_layout;
+        uint32_t eye_padding;
 	void *driver_buffer;
 };
 

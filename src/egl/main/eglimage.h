@@ -58,6 +58,7 @@ struct _egl_image_attribs
 
    /* EGL_WL_bind_wayland_display */
    EGLint PlaneWL;
+   EGLint MultiviewViewWL;
 
    /* EGL_EXT_image_dma_buf_import */
    struct _egl_image_attrib_int DMABufFourCC;

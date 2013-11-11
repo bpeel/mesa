@@ -2064,6 +2064,9 @@ dri2_query_wayland_buffer_wl(_EGLDriver *drv, _EGLDisplay *disp,
    case EGL_HEIGHT:
       *value = buffer->height;
       return EGL_TRUE;
+   case EGL_MULTIVIEW_VIEW_COUNT_EXT:
+      *value = buffer->stereo_layout == WL_DRM_STEREO_LAYOUT_NONE ? 1 : 2;
+      return EGL_TRUE;
    }
 
    return EGL_FALSE;

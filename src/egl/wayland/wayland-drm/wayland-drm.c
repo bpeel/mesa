@@ -96,6 +96,8 @@ create_buffer(struct wl_client *client, struct wl_resource *resource,
 	buffer->stride[1] = stride1;
 	buffer->offset[2] = offset2;
 	buffer->stride[2] = stride2;
+        buffer->stereo_layout = WL_DRM_STEREO_LAYOUT_NONE;
+        buffer->eye_padding = 0;
 
         drm->callbacks->reference_buffer(drm->user_data, name, fd, buffer);
 	if (buffer->driver_buffer == NULL) {
@@ -197,11 +199,31 @@ drm_authenticate(struct wl_client *client,
 		wl_resource_post_event(resource, WL_DRM_AUTHENTICATED);
 }
 
+static void
+drm_set_buffer_stereo_layout(struct wl_client *client,
+                             struct wl_resource *resource,
+                             struct wl_resource *buffer_resource,
+                             uint32_t layout,
+                             uint32_t eye_padding)
+{
+        struct wl_drm *drm = wl_resource_get_user_data(resource);
+        struct wl_drm_buffer *buffer;
+
+        buffer = wayland_drm_buffer_get(drm, buffer_resource);
+
+        if (buffer == NULL)
+                return;
+
+        buffer->stereo_layout = layout;
+        buffer->eye_padding = eye_padding;
+}
+
 const static struct wl_drm_interface drm_interface = {
 	drm_authenticate,
 	drm_create_buffer,
         drm_create_planar_buffer,
-        drm_create_prime_buffer
+        drm_create_prime_buffer,
+        drm_set_buffer_stereo_layout
 };
 
 static void
@@ -212,7 +234,7 @@ bind_drm(struct wl_client *client, void *data, uint32_t version, uint32_t id)
         uint32_t capabilities;
 
 	resource = wl_resource_create(client, &wl_drm_interface,
-				      MIN(version, 2), id);
+				      MIN(version, 3), id);
 	if (!resource) {
 		wl_client_post_no_memory(client);
 		return;
@@ -275,7 +297,7 @@ wayland_drm_init(struct wl_display *display, char *device_name,
         drm->buffer_interface.destroy = buffer_destroy;
 
 	drm->wl_drm_global =
-		wl_global_create(display, &wl_drm_interface, 2,
+		wl_global_create(display, &wl_drm_interface, 3,
 				 drm, bind_drm);
 
 	return drm;

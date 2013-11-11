@@ -38,6 +38,7 @@
 #ifdef HAVE_WAYLAND_PLATFORM
 #include <wayland-client.h>
 #include "wayland-egl-priv.h"
+#include "wayland-drm-client-protocol.h"
 #endif
 
 #include <GL/gl.h>
@@ -244,6 +245,8 @@ struct dri2_egl_surface
 #ifdef HAVE_WAYLAND_PLATFORM
       struct wl_buffer   *wl_buffer;
       __DRIimage         *dri_image;
+      enum wl_drm_stereo_layout stereo_layout;
+      uint32_t            eye_padding;
 #endif
 #ifdef HAVE_DRM_PLATFORM
       struct gbm_bo       *bo;
