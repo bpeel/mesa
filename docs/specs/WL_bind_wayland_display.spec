@@ -17,7 +17,7 @@ Status
 
 Version
 
-    Version 5, July 16, 2013
+    Version 7, November 6, 2013
 
 Number
 
@@ -29,6 +29,8 @@ Dependencies
     wording of the EGL 1.4 specification.
 
     EGL_KHR_base_image is required.
+
+    EGL_EXT_multiview_window affects the definition of this extension.
 
 Overview
 
@@ -69,6 +71,7 @@ New Tokens
     Accepted in the <attrib_list> parameter of eglCreateImageKHR:
 
         EGL_WAYLAND_PLANE_WL                    0x31D6
+        EGL_MULTIVIEW_VIEW_WL                   0x31DC
 
     Possible values for EGL_TEXTURE_FORMAT:
 
@@ -172,6 +175,16 @@ Additions to the EGL 1.4 Specification:
     wl_buffer should be treated as if value of
     EGL_WAYLAND_Y_INVERTED_WL was EGL_TRUE.
 
+    If the EGL_EXT_multiview_window extension is supported then
+    eglQueryWaylandBufferWL can additionally accept
+    EGL_MULTIVIEW_VIEW_COUNT_EXT. This will return the number of views that
+    are contained in the buffer. A normal buffer will contain a single view
+    and a stereoscopic buffer will contain two views. Additional views may be
+    available with different interpretations depending on the implementation.
+    An EGLimage can be created for a specific view by passing the
+    EGL_MULTIVIEW_VIEW_WL attribute to eglCreateImageKHR. If this attribute is
+    not specified then view zero will be used.
+
 Issues
 
 Revision History
@@ -195,3 +208,7 @@ Revision History
     Version 6, September 16, 2013
         Add EGL_WAYLAND_Y_INVERTED_WL attribute to allow specifying
         wl_buffer's orientation.
+    Version 7, November 6, 2013
+        Add support for querying the number of views with
+        EGL_MULTIVIEW_VIEW_COUNT_EXT and creating an image for a specific view
+        with the EGL_MULTIVIEW_VIEW_WL attribute. (Neil Roberts)
