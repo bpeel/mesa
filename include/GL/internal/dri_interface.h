@@ -1374,13 +1374,15 @@ struct __DRI2rendererQueryExtensionRec {
 
 enum __DRIimageBufferMask {
    __DRI_IMAGE_BUFFER_BACK = (1 << 0),
-   __DRI_IMAGE_BUFFER_FRONT = (1 << 1)
+   __DRI_IMAGE_BUFFER_FRONT = (1 << 1),
+   __DRI_IMAGE_BUFFER_BACK_RIGHT = (1 << 2)
 };
 
 struct __DRIimageList {
    uint32_t image_mask;
    __DRIimage *back;
    __DRIimage *front;
+   __DRIimage *back_right;
 };
 
 #define __DRI_IMAGE_LOADER "DRI_IMAGE_LOADER"
