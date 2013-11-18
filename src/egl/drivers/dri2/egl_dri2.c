@@ -1363,10 +1363,12 @@ dri2_create_image_wayland_wl_buffer(_EGLDisplay *disp, _EGLContext *ctx,
    struct wl_drm_buffer *buffer;
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
    const struct wl_drm_components_descriptor *f;
-   __DRIimage *dri_image;
+   __DRIimage *dri_image, *sub_dri_image;
    _EGLImageAttribs attrs;
    EGLint err;
    int32_t plane;
+   int32_t n_views;
+   int32_t offset;
 
    buffer = wayland_drm_buffer_get(dri2_dpy->wl_server_drm,
                                    (struct wl_resource *) _buffer);
@@ -1387,14 +1389,91 @@ dri2_create_image_wayland_wl_buffer(_EGLDisplay *disp, _EGLContext *ctx,
       return NULL;
    }
 
-   dri_image = dri2_dpy->image->fromPlanar(buffer->driver_buffer, plane, NULL);
-
-   if (dri_image == NULL) {
-      _eglError(EGL_BAD_PARAMETER, "dri2_create_image_wayland_wl_buffer");
+   n_views = buffer->stereo_layout == WL_DRM_STEREO_LAYOUT_NONE ? 1 : 2;
+   if (attrs.MultiviewViewWL < 0 || attrs.MultiviewViewWL >= n_views) {
+      _eglError(EGL_BAD_PARAMETER,
+                "dri2_create_image_wayland_wl_buffer (view out of bounds");
       return NULL;
    }
 
+   dri_image = dri2_dpy->image->fromPlanar(buffer->driver_buffer,
+                                           plane,
+                                           NULL);
+
+   if (dri_image == NULL)
+      goto error;
+
+   switch (buffer->stereo_layout) {
+   case WL_DRM_STEREO_LAYOUT_NONE:
+      break;
+
+   case WL_DRM_STEREO_LAYOUT_FRAME_PACKING:
+      if (dri2_dpy->image->createSubImage == NULL)
+         goto error;
+      if (attrs.MultiviewViewWL == 0)
+         offset = 0;
+      else
+         offset = buffer->height + buffer->eye_padding;
+      sub_dri_image = dri2_dpy->image->createSubImage(dri_image,
+                                                      0, /* x */
+                                                      offset, /* y */
+                                                      buffer->width,
+                                                      buffer->height,
+                                                      1, /* line step */
+                                                      NULL);
+      dri2_dpy->image->destroyImage(dri_image);
+      dri_image = sub_dri_image;
+      break;
+
+   case WL_DRM_STEREO_LAYOUT_SIDE_BY_SIDE_FULL:
+      if (dri2_dpy->image->createSubImage == NULL)
+         goto error;
+      if (attrs.MultiviewViewWL == 0)
+         offset = 0;
+      else
+         offset = buffer->width;
+      sub_dri_image = dri2_dpy->image->createSubImage(dri_image,
+                                                      offset, /* x */
+                                                      0, /* y */
+                                                      buffer->width,
+                                                      buffer->height,
+                                                      1, /* line step */
+                                                      NULL);
+      dri2_dpy->image->destroyImage(dri_image);
+      dri_image = sub_dri_image;
+      break;
+
+   case WL_DRM_STEREO_LAYOUT_LINE_ALTERNATIVE:
+      if (dri2_dpy->image->createSubImage == NULL)
+         goto error;
+      if (attrs.MultiviewViewWL == 0)
+         offset = 0;
+      else
+         offset = 1;
+      sub_dri_image = dri2_dpy->image->createSubImage(dri_image,
+                                                      0, /* x */
+                                                      offset, /* y */
+                                                      buffer->width,
+                                                      buffer->height,
+                                                      2, /* line step */
+                                                      NULL);
+      dri2_dpy->image->destroyImage(dri_image);
+      dri_image = sub_dri_image;
+      break;
+
+   default:
+      dri2_dpy->image->destroyImage(dri_image);
+      dri_image = NULL;
+   }
+
+   if (dri_image == NULL)
+      goto error;
+
    return dri2_create_image_from_dri(disp, dri_image);
+
+error:
+   _eglError(EGL_BAD_PARAMETER, "dri2_create_image_wayland_wl_buffer");
+   return NULL;
 }
 #endif
 
