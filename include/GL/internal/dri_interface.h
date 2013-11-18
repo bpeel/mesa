@@ -1239,6 +1239,21 @@ struct __DRIimageExtensionRec {
                                          enum __DRIChromaSiting vert_siting,
                                          unsigned *error,
                                          void *loaderPrivate);
+
+   /**
+    * Creates a sub image that shares the same underlying buffer as the parent
+    * image.
+    *
+    * If the parent image is planar then the new sub image will also be
+    * planar.
+    *
+    * \since 9
+    */
+   __DRIimage *(*createSubImage)(__DRIimage *parent_image,
+                                 int x, int y,
+                                 int width, int height,
+                                 int line_step,
+                                 void *loaderPrivate);
 };
 
 

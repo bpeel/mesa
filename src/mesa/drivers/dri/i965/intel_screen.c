@@ -739,6 +739,67 @@ intel_create_image_from_dma_bufs(__DRIscreen *screen,
 }
 
 static __DRIimage *
+intel_create_sub_image(__DRIimage *parent_image,
+                       int x, int y,
+                       int width, int height,
+                       int line_step,
+                       void *loaderPrivate)
+{
+    __DRIimage *image;
+    int i;
+
+    if (parent_image == NULL || parent_image->planar_format != NULL)
+        return NULL;
+
+    image = intel_allocate_image(parent_image->dri_format, loaderPrivate);
+
+    image->region = calloc(sizeof(*image->region), 1);
+    if (image->region == NULL) {
+       free(image);
+       return NULL;
+    }
+
+    if (parent_image->planar_format) {
+       image->planar_format = malloc(sizeof(*image->planar_format));
+       if (image->planar_format == NULL) {
+          free(image->region);
+          free(image);
+          return NULL;
+       }
+       memcpy(image->planar_format,
+              parent_image->planar_format,
+              sizeof(*image->planar_format));
+    }
+
+    image->region->cpp = parent_image->region->cpp;
+    image->region->width = width;
+    image->region->height = height;
+    image->region->tiling = parent_image->region->tiling;
+    image->region->name = parent_image->region->name;
+    image->region->refcount = 1;
+    image->region->bo = parent_image->region->bo;
+    drm_intel_bo_reference(image->region->bo);
+
+    image->region->pitch = parent_image->region->pitch * line_step;
+    image->offset =
+       parent_image->offset +
+       intel_region_get_offset(image->region, x, y, false);
+
+    if (image->planar_format) {
+       for (i = 0; i < image->planar_format->nplanes; i++) {
+          image->strides[i] = parent_image->strides[i] * line_step;
+          image->offsets[i] =
+             parent_image->offsets[i] +
+             intel_region_get_offset(image->region, x, y, false);
+       }
+    }
+
+    intel_setup_image_from_dimensions(image);
+
+    return image;
+}
+
+static __DRIimage *
 intel_from_planar(__DRIimage *parent, int plane, void *loaderPrivate)
 {
     int width, height, offset, stride, dri_format, index;
@@ -797,7 +858,7 @@ intel_from_planar(__DRIimage *parent, int plane, void *loaderPrivate)
 }
 
 static struct __DRIimageExtensionRec intelImageExtension = {
-    .base = { __DRI_IMAGE, 8 },
+    .base = { __DRI_IMAGE, 9 },
 
     .createImageFromName                = intel_create_image_from_name,
     .createImageFromRenderbuffer        = intel_create_image_from_renderbuffer,
@@ -810,7 +871,8 @@ static struct __DRIimageExtensionRec intelImageExtension = {
     .fromPlanar                         = intel_from_planar,
     .createImageFromTexture             = intel_create_image_from_texture,
     .createImageFromFds                 = intel_create_image_from_fds,
-    .createImageFromDmaBufs             = intel_create_image_from_dma_bufs
+    .createImageFromDmaBufs             = intel_create_image_from_dma_bufs,
+    .createSubImage                     = intel_create_sub_image
 };
 
 static int
