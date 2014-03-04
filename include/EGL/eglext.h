@@ -571,6 +571,11 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffersWithDamageEXT( EGLDisplay dpy, EGLSu
 typedef EGLBoolean (EGLAPIENTRYP PFNEGLSWAPBUFFERSWITHDAMAGEEXTPROC)(EGLDisplay dpy, EGLSurface surface, EGLint *rects, EGLint n_rects);
 #endif
 
+#ifndef EGL_MESA_configless_context
+#define EGL_MESA_configless_context 1
+#define EGL_NO_CONFIG_MESA			((EGLConfig)0)
+#endif
+
 #include <EGL/eglmesaext.h>
 
 #ifdef __cplusplus
