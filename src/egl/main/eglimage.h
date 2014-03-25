@@ -69,6 +69,12 @@ struct _egl_image_attribs
    struct _egl_image_attrib_int DMABufSampleRangeHint;
    struct _egl_image_attrib_int DMABufChromaHorizontalSiting;
    struct _egl_image_attrib_int DMABufChromaVerticalSiting;
+
+   /* EGL_MESA_sub_image */
+   struct _egl_image_attrib_int SubImageX;
+   struct _egl_image_attrib_int SubImageY;
+   struct _egl_image_attrib_int SubImageWidth;
+   struct _egl_image_attrib_int SubImageHeight;
 };
 
 /**

@@ -1851,6 +1851,76 @@ dri2_create_image_dma_buf(_EGLDisplay *disp, _EGLContext *ctx,
 }
 #endif
 
+static _EGLImage *
+dri2_create_image_sub_image(_EGLDisplay *disp, _EGLContext *ctx,
+                            EGLClientBuffer buffer, const EGLint *attr_list)
+{
+   struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
+   _EGLImage *res, *other_image;
+   EGLint err;
+   _EGLImageAttribs attrs;
+   __DRIimage *dri_image, *dri_other_image;
+   int other_width, other_height;
+
+   if (ctx != NULL) {
+      _eglError(EGL_BAD_PARAMETER, "ctx not NULL");
+      return NULL;
+   }
+
+   err = _eglParseImageAttribList(&attrs, disp, attr_list);
+   if (err != EGL_SUCCESS) {
+      _eglError(err, "bad attribute");
+      return NULL;
+   }
+
+   if (!attrs.SubImageX.IsPresent ||
+       !attrs.SubImageY.IsPresent ||
+       !attrs.SubImageWidth.IsPresent ||
+       !attrs.SubImageHeight.IsPresent) {
+      _eglError(EGL_BAD_ATTRIBUTE, "missing region attributes");
+      return NULL;
+   }
+
+   other_image = (_EGLImage *) buffer;
+   dri_other_image = dri2_egl_image(other_image)->dri_image;
+
+   dri2_dpy->image->queryImage(dri_other_image,
+                               __DRI_IMAGE_ATTRIB_WIDTH,
+                               &other_width);
+   dri2_dpy->image->queryImage(dri_other_image,
+                               __DRI_IMAGE_ATTRIB_HEIGHT,
+                               &other_height);
+
+   if (attrs.SubImageX.Value < 0 ||
+       attrs.SubImageY.Value < 0 ||
+       attrs.SubImageWidth.Value <= 0 ||
+       attrs.SubImageHeight.Value <= 0 ||
+       attrs.SubImageX.Value + attrs.SubImageWidth.Value > other_width ||
+       attrs.SubImageY.Value + attrs.SubImageHeight.Value > other_height) {
+      _eglError(EGL_BAD_ATTRIBUTE, "region is out of range of the image");
+      return NULL;
+   }
+
+   if (dri2_dpy->image->base.version < 9 ||
+       dri2_dpy->image->createSubImage == NULL) {
+      _eglError(EGL_BAD_ACCESS, "createSubImage is not supported");
+      return NULL;
+   }
+
+   dri_image =
+      dri2_dpy->image->createSubImage(dri_other_image,
+                                      attrs.SubImageX.Value,
+                                      attrs.SubImageY.Value,
+                                      attrs.SubImageWidth.Value,
+                                      attrs.SubImageHeight.Value,
+                                      1, /* line step */
+                                      NULL);
+
+   res = dri2_create_image_from_dri(disp, dri_image);
+
+   return res;
+}
+
 _EGLImage *
 dri2_create_image_khr(_EGLDriver *drv, _EGLDisplay *disp,
 		      _EGLContext *ctx, EGLenum target,
@@ -1881,6 +1951,8 @@ dri2_create_image_khr(_EGLDriver *drv, _EGLDisplay *disp,
    case EGL_LINUX_DMA_BUF_EXT:
       return dri2_create_image_dma_buf(disp, ctx, buffer, attr_list);
 #endif
+   case EGL_SUB_IMAGE_MESA:
+      return dri2_create_image_sub_image(disp, ctx, buffer, attr_list);
    default:
       _eglError(EGL_BAD_PARAMETER, "dri2_create_image_khr");
       return EGL_NO_IMAGE_KHR;

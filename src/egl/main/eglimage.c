@@ -171,6 +171,22 @@ _eglParseImageAttribList(_EGLImageAttribs *attrs, _EGLDisplay *dpy,
             attrs->DMABufChromaVerticalSiting.IsPresent = EGL_TRUE;
          }
          break;
+      case EGL_SUB_IMAGE_X_MESA:
+         attrs->SubImageX.Value = val;
+         attrs->SubImageX.IsPresent = EGL_TRUE;
+         break;
+      case EGL_SUB_IMAGE_Y_MESA:
+         attrs->SubImageY.Value = val;
+         attrs->SubImageY.IsPresent = EGL_TRUE;
+         break;
+      case EGL_SUB_IMAGE_WIDTH_MESA:
+         attrs->SubImageWidth.Value = val;
+         attrs->SubImageWidth.IsPresent = EGL_TRUE;
+         break;
+      case EGL_SUB_IMAGE_HEIGHT_MESA:
+         attrs->SubImageHeight.Value = val;
+         attrs->SubImageHeight.IsPresent = EGL_TRUE;
+         break;
 
       default:
          /* unknown attrs are ignored */

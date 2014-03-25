@@ -135,6 +135,15 @@ typedef EGLBoolean (EGLAPIENTRYP PFNEGLQUERYWAYLANDBUFFERWL) (EGLDisplay dpy, st
 
 #endif
 
+#ifndef EGL_MESA_sub_image
+#define EGL_MESA_sub_image 1
+#define EGL_SUB_IMAGE_MESA              0x3290
+#define EGL_SUB_IMAGE_X_MESA            0x3291
+#define EGL_SUB_IMAGE_Y_MESA            0x3292
+#define EGL_SUB_IMAGE_WIDTH_MESA        0x3293
+#define EGL_SUB_IMAGE_HEIGHT_MESA       0x3294
+#endif
+
 #ifndef EGL_WL_create_wayland_buffer_from_image
 #define EGL_WL_create_wayland_buffer_from_image 1
 
