@@ -674,7 +674,8 @@ intel_miptree_create_for_bo(struct brw_context *brw,
 void
 intel_update_winsys_renderbuffer_miptree(struct brw_context *intel,
                                          struct intel_renderbuffer *irb,
-                                         struct intel_region *region)
+                                         struct intel_region *region,
+                                         uint32_t offset)
 {
    struct intel_mipmap_tree *singlesample_mt = NULL;
    struct intel_mipmap_tree *multisample_mt = NULL;
@@ -691,7 +692,7 @@ intel_update_winsys_renderbuffer_miptree(struct brw_context *intel,
    singlesample_mt = intel_miptree_create_for_bo(intel,
                                                  region->bo,
                                                  format,
-                                                 0,
+                                                 offset,
                                                  region->width,
                                                  region->height,
                                                  region->pitch,

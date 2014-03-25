@@ -1298,7 +1298,7 @@ intel_process_dri2_buffer(struct brw_context *brw,
       return;
    }
 
-   intel_update_winsys_renderbuffer_miptree(brw, rb, region);
+   intel_update_winsys_renderbuffer_miptree(brw, rb, region, 0 /* offset */);
 
    if (brw_is_front_buffer_drawing(fb) &&
        (buffer->attachment == __DRI_BUFFER_FRONT_LEFT ||
@@ -1355,7 +1355,7 @@ intel_update_image_buffer(struct brw_context *intel,
    if (last_mt && last_mt->region->bo == region->bo)
       return;
 
-   intel_update_winsys_renderbuffer_miptree(intel, rb, region);
+   intel_update_winsys_renderbuffer_miptree(intel, rb, region, buffer->offset);
 
    if (brw_is_front_buffer_drawing(fb) &&
        buffer_type == __DRI_IMAGE_BUFFER_FRONT &&
