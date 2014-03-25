@@ -946,10 +946,21 @@ intel_miptree_get_image_offset(const struct intel_mipmap_tree *mt,
 			       GLuint level, GLuint slice,
 			       GLuint *x, GLuint *y)
 {
+   uint32_t tx, ty;
+
    assert(slice < mt->level[level].depth);
 
    *x = mt->level[level].slice[slice].x_offset;
    *y = mt->level[level].slice[slice].y_offset;
+
+   if (mt->region) {
+      intel_region_get_offset_position(mt->region,
+                                       mt->offset,
+                                       &tx, &ty,
+                                       false /* map_stencil_as_y_tiled */);
+      *x += tx;
+      *y += ty;
+   }
 }
 
 /**

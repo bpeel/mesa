@@ -426,6 +426,25 @@ gen7_update_null_renderbuffer_surface(struct brw_context *brw, unsigned unit)
    gen7_check_surface_setup(surf, true /* is_render_target */);
 }
 
+static uint32_t
+compute_tile_offsets(struct intel_region *region,
+                     uint32_t offset,
+                     uint32_t *tile_x,
+                     uint32_t *tile_y)
+{
+   if (region->tiling == I915_TILING_NONE) {
+      *tile_x = 0;
+      *tile_y = 0;
+      return offset;
+   } else {
+      intel_region_get_tile_offset_position(region,
+                                            offset & 4095,
+                                            tile_x, tile_y,
+                                            false);
+      return offset & ~4095;
+   }
+}
+
 /**
  * Sets up a surface state structure to point at the given region.
  * While it is only used for the front/back buffer currently, it should be
@@ -447,6 +466,7 @@ gen7_update_renderbuffer_surface(struct brw_context *brw,
    bool is_array = false;
    int depth = MAX2(rb->Depth, 1);
    int min_array_element;
+   uint32_t tile_x, tile_y;
    const uint8_t mocs = GEN7_MOCS_L3;
    GLenum gl_target = rb->TexImage ?
                          rb->TexImage->TexObject->Target : GL_TEXTURE_2D;
@@ -506,12 +526,20 @@ gen7_update_renderbuffer_surface(struct brw_context *brw,
       surf[0] |= GEN7_SURFACE_IS_ARRAY;
    }
 
-   surf[1] = region->bo->offset64;
+   surf[1] = (compute_tile_offsets(region, irb->mt->offset, &tile_x, &tile_y) +
+              region->bo->offset64);
 
    assert(brw->has_surface_tile_offset);
 
-   surf[5] = SET_FIELD(mocs, GEN7_SURFACE_MOCS) |
-             (irb->mt_level - irb->mt->first_level);
+   /* Note that the low bits of these fields are missing, so
+    * there's the possibility of getting in trouble.
+    */
+   assert(tile_x % 4 == 0);
+   assert(tile_y % 2 == 0);
+   surf[5] = ((tile_x / 4) << BRW_SURFACE_X_OFFSET_SHIFT |
+              (tile_y / 2) << BRW_SURFACE_Y_OFFSET_SHIFT |
+              SET_FIELD(mocs, GEN7_SURFACE_MOCS) |
+              (irb->mt_level - irb->mt->first_level));
 
    surf[2] = SET_FIELD(irb->mt->logical_width0 - 1, GEN7_SURFACE_WIDTH) |
              SET_FIELD(irb->mt->logical_height0 - 1, GEN7_SURFACE_HEIGHT);
