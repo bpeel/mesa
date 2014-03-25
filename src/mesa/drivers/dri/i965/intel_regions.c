@@ -351,3 +351,129 @@ intel_region_get_aligned_offset(const struct intel_region *region, uint32_t x,
       return y * pitch + x / (128 / cpp) * 4096;
    }
 }
+
+uint32_t
+intel_region_get_tile_offset(struct intel_region *region,
+                             uint32_t x,
+                             uint32_t y,
+                             bool map_stencil_as_y_tiled)
+{
+   int cpp = region->cpp;
+   uint32_t tiling = region->tiling;
+   uint32_t pixels_per_oword;
+
+   if (map_stencil_as_y_tiled)
+      tiling = I915_TILING_Y;
+
+   if (tiling == I915_TILING_NONE)
+      return 0;
+
+   pixels_per_oword = 16 / cpp;
+
+   switch (tiling) {
+   default:
+      assert(false);
+   case I915_TILING_X:
+      return y * 32 * 16 + x * cpp;
+   case I915_TILING_Y:
+      return ((x / pixels_per_oword) * 32 * 16 +
+              (x % pixels_per_oword) * cpp +
+              y * 16);
+   }
+}
+
+uint32_t
+intel_region_get_offset(struct intel_region *region,
+                        uint32_t x,
+                        uint32_t y,
+                        bool map_stencil_as_y_tiled)
+{
+   uint32_t mask_x, mask_y;
+   uint32_t offset;
+
+   intel_region_get_tile_masks(region,
+                               &mask_x,
+                               &mask_y,
+                               map_stencil_as_y_tiled);
+   offset = intel_region_get_aligned_offset(region,
+                                            x & ~mask_x,
+                                            y & ~mask_y,
+                                            map_stencil_as_y_tiled);
+   offset += intel_region_get_tile_offset(region,
+                                          x & mask_x,
+                                          y & mask_y,
+                                          map_stencil_as_y_tiled);
+
+   return offset;
+}
+
+void
+intel_region_get_tile_offset_position(struct intel_region *region,
+                                      uint32_t offset,
+                                      uint32_t *tile_x,
+                                      uint32_t *tile_y,
+                                      bool map_stencil_as_y_tiled)
+{
+   uint32_t tiling = region->tiling;
+   int cpp = region->cpp;
+
+   if (map_stencil_as_y_tiled)
+      tiling = I915_TILING_Y;
+
+   switch (tiling) {
+   default:
+      assert(false);
+   case I915_TILING_X:
+      *tile_x = offset % (32 * 16) / cpp;
+      *tile_y = offset / (32 * 16);
+      break;
+   case I915_TILING_Y:
+      *tile_x = offset / (32 * 16) * (16 / cpp) + (offset % 16) / cpp;
+      *tile_y = offset % (32 * 16) / 16;
+      break;
+   }
+}
+
+void
+intel_region_get_offset_position(struct intel_region *region,
+                                 uint32_t offset,
+                                 uint32_t *tile_x,
+                                 uint32_t *tile_y,
+                                 bool map_stencil_as_y_tiled)
+{
+   uint32_t tiling = region->tiling;
+   uint32_t pitch = region->pitch;
+   int cpp = region->cpp;
+   int n_tiles, tile_width;
+
+   if (map_stencil_as_y_tiled)
+      tiling = I915_TILING_Y;
+
+   if (tiling == I915_TILING_NONE) {
+      *tile_x = offset % pitch / cpp;
+      *tile_y = offset / pitch;
+      return;
+   }
+
+   intel_region_get_tile_offset_position(region,
+                                         offset % 4096,
+                                         tile_x, tile_y,
+                                         map_stencil_as_y_tiled);
+
+   n_tiles = offset / 4096;
+
+   switch (tiling) {
+   default:
+      assert(false);
+   case I915_TILING_X:
+      tile_width = pitch / (32 * 16);
+      *tile_x += n_tiles % tile_width * 32 * 16 / cpp;
+      *tile_y += n_tiles / tile_width * 8;
+      break;
+   case I915_TILING_Y:
+      tile_width = pitch / (8 * 16);
+      *tile_x += n_tiles % tile_width * 8 * 16 / cpp;
+      *tile_y += n_tiles / tile_width * 32;
+      break;
+   }
+}

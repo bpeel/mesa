@@ -112,6 +112,32 @@ uint32_t
 intel_region_get_aligned_offset(const struct intel_region *region, uint32_t x,
                                 uint32_t y, bool map_stencil_as_y_tiled);
 
+uint32_t
+intel_region_get_tile_offset(struct intel_region *region,
+                             uint32_t x,
+                             uint32_t y,
+                             bool map_stencil_as_y_tiled);
+
+uint32_t
+intel_region_get_offset(struct intel_region *region,
+                        uint32_t x,
+                        uint32_t y,
+                        bool map_stencil_as_y_tiled);
+
+void
+intel_region_get_tile_offset_position(struct intel_region *region,
+                                      uint32_t offset,
+                                      uint32_t *tile_x,
+                                      uint32_t *tile_y,
+                                      bool map_stencil_as_y_tiled);
+
+void
+intel_region_get_offset_position(struct intel_region *region,
+                                 uint32_t offset,
+                                 uint32_t *tile_x,
+                                 uint32_t *tile_y,
+                                 bool map_stencil_as_y_tiled);
+
 /**
  * Used with images created with image_from_names
  * to help support planar images.
