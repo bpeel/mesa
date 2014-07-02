@@ -3381,6 +3381,12 @@ cleartexsubimage_using_fbo_for_zoffset(struct gl_context *ctx,
    _mesa_GenFramebuffers(1, &fbo);
    _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
 
+   /* If this is a 3D texture then the image may have a border on the z-axis.
+    * The coordinates given to glClearTexSubImage are relative to the first
+    * image after the border so we need to offset it */
+   if (texImage->TexObject->Target == GL_TEXTURE_3D)
+      zoffset += texImage->Border;
+
    if (texImage->_BaseFormat == GL_DEPTH_STENCIL ||
        texImage->_BaseFormat == GL_DEPTH_COMPONENT) {
       _mesa_meta_bind_fbo_image(GL_DEPTH_ATTACHMENT, texImage, zoffset);
@@ -3425,7 +3431,11 @@ cleartexsubimage_using_fbo_for_zoffset(struct gl_context *ctx,
       goto out;
 
    _mesa_set_enable(ctx, GL_SCISSOR_TEST, GL_TRUE);
-   _mesa_Scissor(xoffset, yoffset, width, height);
+   /* The coordinates given to glClearTexSubImage are such that 0,0 excludes
+    * the border whereas the window coordinates for the framebuffer include
+    * the border so we need to offset them by the border size */
+   _mesa_Scissor(xoffset + texImage->Border, yoffset + texImage->Border,
+                 width, height);
    _mesa_Clear(mask);
 
    success = true;
