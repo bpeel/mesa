@@ -404,9 +404,9 @@ _mesa_update_texture_renderbuffer(struct gl_context *ctx,
    rb->_BaseFormat = texImage->_BaseFormat;
    rb->Format = texImage->TexFormat;
    rb->InternalFormat = texImage->InternalFormat;
-   rb->Width = texImage->Width2;
-   rb->Height = texImage->Height2;
-   rb->Depth = texImage->Depth2;
+   rb->Width = texImage->Width;
+   rb->Height = texImage->Height;
+   rb->Depth = texImage->Depth;
    rb->NumSamples = texImage->NumSamples;
    rb->TexImage = texImage;
 
