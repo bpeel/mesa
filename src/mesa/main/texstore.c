@@ -4122,13 +4122,22 @@ _mesa_store_cleartexsubimage(struct gl_context *ctx,
    GLubyte *dstMap;
    GLint dstRowStride;
    GLsizeiptr clearValueSize;
+   int zBorder;
    GLsizei z;
+
+   /* Only 3D textures have a border on the z-axis */
+   if (texImage->TexObject->Target == GL_TEXTURE_3D)
+      zBorder = texImage->Border;
+   else
+      zBorder = 0;
 
    clearValueSize = _mesa_get_format_bytes(texImage->TexFormat);
 
    for (z = 0; z < depth; z++) {
       ctx->Driver.MapTextureImage(ctx, texImage,
-                                  z + zoffset, xoffset, yoffset,
+                                  z + zoffset + zBorder,
+                                  xoffset + texImage->Border,
+                                  yoffset + texImage->Border,
                                   width, height,
                                   GL_MAP_WRITE_BIT,
                                   &dstMap, &dstRowStride);
