@@ -67,6 +67,7 @@
 #include "texcompress_rgtc.h"
 #include "texcompress_s3tc.h"
 #include "texcompress_etc.h"
+#include "texcompress_bptc.h"
 #include "teximage.h"
 #include "texstore.h"
 #include "enums.h"
@@ -3689,6 +3690,15 @@ _mesa_get_texstore_func(mesa_format format)
       table[MESA_FORMAT_R11G11B10_FLOAT] = _mesa_texstore_r11_g11_b10f;
       table[MESA_FORMAT_Z_FLOAT32] = _mesa_texstore_z32;
       table[MESA_FORMAT_Z32_FLOAT_S8X24_UINT] = _mesa_texstore_z32f_x24s8;
+
+      table[MESA_FORMAT_BPTC_RGBA_UNORM] =
+         _mesa_texstore_bptc_rgba_unorm;
+      table[MESA_FORMAT_BPTC_SRGB_ALPHA_UNORM] =
+         _mesa_texstore_bptc_rgba_unorm;
+      table[MESA_FORMAT_BPTC_RGB_SIGNED_FLOAT] =
+         _mesa_texstore_bptc_rgb_signed_float;
+      table[MESA_FORMAT_BPTC_RGB_UNSIGNED_FLOAT] =
+         _mesa_texstore_bptc_rgb_unsigned_float;
 
       table[MESA_FORMAT_A_UINT8] = _mesa_texstore_rgba_uint8;
       table[MESA_FORMAT_A_UINT16] = _mesa_texstore_rgba_uint16;
