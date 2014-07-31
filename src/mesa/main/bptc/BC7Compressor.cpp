@@ -28,6 +28,7 @@
 #include <cassert>
 #include <cfloat>
 #include <ctime>
+#include <climits>
 
 static const unsigned int kNumShapes2 = 64;
 static const uint16_t kShapeMask2[kNumShapes2] = {
@@ -274,8 +275,8 @@ double BC7CompressionMode::CompressSingleColor(const RGBAVector &p, RGBAVector &
 		const int *pbitCombo = GetPBitCombo(pbi);
 
 		unsigned int dist = 0x0;
-		unsigned int bestValI[kNumColorChannels] = { -1, -1, -1, -1 };
-		unsigned int bestValJ[kNumColorChannels] = { -1, -1, -1, -1 };
+		unsigned int bestValI[kNumColorChannels] = { UINT_MAX, UINT_MAX, UINT_MAX, UINT_MAX };
+		unsigned int bestValJ[kNumColorChannels] = { UINT_MAX, UINT_MAX, UINT_MAX, UINT_MAX };
 
 		for(int ci = 0; ci < kNumColorChannels; ci++) {
 
