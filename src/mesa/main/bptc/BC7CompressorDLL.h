@@ -17,9 +17,6 @@
 
 #pragma once
 
-// Include the windows header because we need the definition for BYTE
-#include <Windows.h>
-
 namespace BC7C
 {
 	// This is the error metric that is applied to our error measurement algorithm

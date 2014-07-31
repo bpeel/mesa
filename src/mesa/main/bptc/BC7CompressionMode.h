@@ -18,7 +18,6 @@
 #ifndef __BC7_COMPRESSIONMODE_SIMD_H__
 #define __BC7_COMPRESSIONMODE_SIMD_H__
 
-#include <Windows.h>
 #include "RGBAEndpoints.h"
 
 // Forward Declarations
