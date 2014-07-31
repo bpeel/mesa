@@ -1731,7 +1731,7 @@ namespace BC7C
 		unsigned int cp = attrs->colorChannelPrecision;
 		const unsigned int shift = 8 - cp;
 
-		UINT8 eps[3][2][4];
+		uint8_t eps[3][2][4];
 		for(unsigned int ch = 0; ch < 3; ch++)
 		for(unsigned int i = 0; i < nSubsets; i++)
 		for(unsigned int ep = 0; ep < 2; ep++)
