@@ -132,10 +132,10 @@ unsigned int RGBAVector::ToPixel(const unsigned int channelMask, const int pBit)
 
 	const uint8_t *channelMaskBytes = (const uint8_t *)&channelMask;
 
-	pRet[0] = QuantizeChannel(unsigned int(r + 0.5) & 0xFF, channelMaskBytes[0], pBit);
-	pRet[1] = QuantizeChannel(unsigned int(g + 0.5) & 0xFF, channelMaskBytes[1], pBit);
-	pRet[2] = QuantizeChannel(unsigned int(b + 0.5) & 0xFF, channelMaskBytes[2], pBit);
-	pRet[3] = QuantizeChannel(unsigned int(a + 0.5) & 0xFF, channelMaskBytes[3], pBit);
+	pRet[0] = QuantizeChannel((unsigned int)(r + 0.5) & 0xFF, channelMaskBytes[0], pBit);
+	pRet[1] = QuantizeChannel((unsigned int)(g + 0.5) & 0xFF, channelMaskBytes[1], pBit);
+	pRet[2] = QuantizeChannel((unsigned int)(b + 0.5) & 0xFF, channelMaskBytes[2], pBit);
+	pRet[3] = QuantizeChannel((unsigned int)(a + 0.5) & 0xFF, channelMaskBytes[3], pBit);
 
 	return ret;
 }
