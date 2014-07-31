@@ -34,30 +34,30 @@ namespace BC7C
 	};
 
 	// Sets the error metric to be the one specified.
-	__declspec(dllexport) void SetErrorMetric(ErrorMetric e);
+	void SetErrorMetric(ErrorMetric e);
 
 	// Retreives a float4 pointer for the r, g, b, a weights for each color channel, in
 	// that order, based on the current error metric.
-	__declspec(dllexport) const float *GetErrorMetric();
+	const float *GetErrorMetric();
 
 	// Returns the enumeration for the current error metric.
-	__declspec(dllexport) ErrorMetric GetErrorMetricEnum();
+	ErrorMetric GetErrorMetricEnum();
 
 	// Sets the number of steps that we use to perform simulated annealing. In general, a
 	// larger number produces better results. The default is set to 50. This metric works
 	// on a logarithmic scale -- twice the value will double the compute time, but only
 	// decrease the error by two times a factor.
-	__declspec(dllexport) void SetQualityLevel(int q);
-	__declspec(dllexport) int GetQualityLevel();
+	void SetQualityLevel(int q);
+	int GetQualityLevel();
 
 	// Compress the image given as RGBA data to BC7 format. Width and Height are the dimensions of
 	// the image in pixels.
-	__declspec(dllexport) void CompressImageBC7(const BYTE *inBuf, BYTE *outBuf, int width, int height);
+	void CompressImageBC7(const BYTE *inBuf, BYTE *outBuf, int width, int height);
 
 	// Compress the image given as RGBA data to BC7 format using an algorithm optimized for SIMD
 	// enabled platforms. Width and Height are the dimensions of the image in pixels.
-	__declspec(dllexport) void CompressImageBC7SIMD(const BYTE* inBuf, BYTE* outBuf, int width, int height);
+	void CompressImageBC7SIMD(const BYTE* inBuf, BYTE* outBuf, int width, int height);
 
 	// Decompress the image given as BC7 data to R8G8B8A8 format. Width and Height are the dimensions of the image in pixels.
-	__declspec(dllexport) void DecompressImageBC7SIMD(const BYTE* inBuf, BYTE* outBuf, int width, int height);
+	void DecompressImageBC7SIMD(const BYTE* inBuf, BYTE* outBuf, int width, int height);
 }
