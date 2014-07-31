@@ -20,6 +20,7 @@
 
 #include <cmath>
 #include <cfloat>
+#include <cstring>
 #include <stdint.h>
 
 static const int kNumColorChannels = 4;
