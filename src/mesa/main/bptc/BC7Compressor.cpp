@@ -537,7 +537,6 @@ bool BC7CompressionMode::AcceptNewEndpointError(double newError, double oldError
 double BC7CompressionMode::OptimizeEndpointsForCluster(const RGBACluster &cluster, RGBAVector &p1, RGBAVector &p2, int *bestIndices, int &bestPbitCombo) const {
 
 	const int nBuckets = (1 << GetNumberOfBitsPerIndex());
-	const int nPbitCombos = GetNumPbitCombos();
 	const unsigned int qmask = GetQuantizationMask();
 
 	// Here we use simulated annealing to traverse the space of clusters to find the best possible endpoints.
