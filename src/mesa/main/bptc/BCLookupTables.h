@@ -20,12 +20,12 @@
 // tables to speed up this precision by allowing every value to be 1/3 of the way
 // between the two colors specified.
 /*
-	UINT nbits = 7;
-	UINT lastNum = -1;
-	UINT vals[255];
-	UINT valIdx = 0;
-	for(UINT i = 0; i < 256; i++) {
-		UINT num = (i >> (8 - nbits));
+	unsigned int nbits = 7;
+	unsigned int lastNum = -1;
+	unsigned int vals[255];
+	unsigned int valIdx = 0;
+	for(unsigned int i = 0; i < 256; i++) {
+		unsigned int num = (i >> (8 - nbits));
 		num <<= (8-nbits);
 		num |= i >> nbits;
 
@@ -35,21 +35,21 @@
 		}
 	}
 
-	for(UINT i = 0; i < 256; i++) {
+	for(unsigned int i = 0; i < 256; i++) {
 
-		UINT mindist = 0xFFFFFFFF;
-		UINT minj = 0, mink = 0;
+		unsigned int mindist = 0xFFFFFFFF;
+		unsigned int minj = 0, mink = 0;
 
-		UINT tableEntry[2] = { 0, 0 };
+		unsigned int tableEntry[2] = { 0, 0 };
 
 		mindist = 0xFFFFFFFF;
 		minj = 0, mink = 0;
 
-		for(UINT j = 0; j < valIdx; j++) {
-			for(UINT k = 0; k < valIdx ; k++) {
+		for(unsigned int j = 0; j < valIdx; j++) {
+			for(unsigned int k = 0; k < valIdx ; k++) {
 
-				UINT combo = (43 * vals[j] + 21 * vals[k] + 32) >> 6;
-				UINT dist = ((i > combo) ? i - combo : combo - i);
+				unsigned int combo = (43 * vals[j] + 21 * vals[k] + 32) >> 6;
+				unsigned int dist = ((i > combo) ? i - combo : combo - i);
 				if( dist < mindist )
 				{
 					mindist = dist;
@@ -341,12 +341,12 @@ static unsigned char Optimal7CompressBC7Mode5[256][2] = {
 //
 // The following tables were generated with the following program:
 /*
- 	UINT nbits = 5;
-	UINT lastNum = -1;
-	UINT vals[255];
-	UINT valIdx = 0;
-	for(UINT i = 0; i < 256; i++) {
-		UINT num = (i >> (8 - nbits));
+ 	unsigned int nbits = 5;
+	unsigned int lastNum = -1;
+	unsigned int vals[255];
+	unsigned int valIdx = 0;
+	for(unsigned int i = 0; i < 256; i++) {
+		unsigned int num = (i >> (8 - nbits));
 		num <<= (8-nbits);
 		num |= i >> nbits;
 
@@ -356,18 +356,18 @@ static unsigned char Optimal7CompressBC7Mode5[256][2] = {
 		}
 	}
 
-	for(UINT i = 0; i < 256; i++) {
+	for(unsigned int i = 0; i < 256; i++) {
 
-		UINT mindist = 0xFFFFFFFF;
-		UINT minj = 0, mink = 0;
+		unsigned int mindist = 0xFFFFFFFF;
+		unsigned int minj = 0, mink = 0;
 
-		UINT tableEntry[2][4] = { {1, 0, 0, 0xFFFFFFFF}, {0, 0, 0, 0xFFFFFFFF} };
+		unsigned int tableEntry[2][4] = { {1, 0, 0, 0xFFFFFFFF}, {0, 0, 0, 0xFFFFFFFF} };
 
-		for(UINT j = 0; j < valIdx; j++) {
-			for(UINT k = j; k < valIdx ; k++) {
+		for(unsigned int j = 0; j < valIdx; j++) {
+			for(unsigned int k = j; k < valIdx ; k++) {
 
-				UINT combo = (vals[j] + vals[k]) / 2;
-				UINT dist = ((i > combo) ? i - combo : combo - i);
+				unsigned int combo = (vals[j] + vals[k]) / 2;
+				unsigned int dist = ((i > combo) ? i - combo : combo - i);
 				if( dist < mindist )
 				{
 					mindist = dist;
@@ -384,11 +384,11 @@ static unsigned char Optimal7CompressBC7Mode5[256][2] = {
 		mindist = 0xFFFFFFFF;
 		minj = 0, mink = 0;
 
-		for(UINT j = 0; j < valIdx; j++) {
-			for(UINT k = j; k < valIdx ; k++) {
+		for(unsigned int j = 0; j < valIdx; j++) {
+			for(unsigned int k = j; k < valIdx ; k++) {
 
-				UINT combo = (2 * vals[j] + vals[k]) / 3;
-				UINT dist = ((i > combo) ? i - combo : combo - i);
+				unsigned int combo = (2 * vals[j] + vals[k]) / 3;
+				unsigned int dist = ((i > combo) ? i - combo : combo - i);
 				if( dist < mindist )
 				{
 					mindist = dist;

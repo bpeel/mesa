@@ -33,10 +33,10 @@ public:
 		float c[4];
 	};
 
-	UINT GetIdx() const { return  idx; }
+	unsigned int GetIdx() const { return  idx; }
 
 	RGBAVector() : r(-1.0), g(-1.0), b(-1.0), a(-1.0) { }
-	RGBAVector(UINT _idx, UINT pixel) :
+	RGBAVector(unsigned int _idx, unsigned int pixel) :
 		r(float(pixel & 0xFF)),
 		g(float((pixel >> 8) & 0xFF)),
 		b(float((pixel >> 16) & 0xFF)),
@@ -135,10 +135,10 @@ public:
 	}
 
 	// Quantize this point.
-	UINT ToPixel(const UINT channelMask = 0xFFFFFFFF, const int pBit = -1) const;
+	unsigned int ToPixel(const unsigned int channelMask = 0xFFFFFFFF, const int pBit = -1) const;
 
 private:
-	UINT idx;
+	unsigned int idx;
 };
 
 class RGBAMatrix {
@@ -321,7 +321,7 @@ public:
 	}
 
 	// Returns the error if we were to quantize the colors right now with the given number of buckets and bit mask.
-	double QuantizedError(const RGBAVector &p1, const RGBAVector &p2, BYTE nBuckets, UINT bitMask, const RGBAVector &errorMetricVec, const int pbits[2] = NULL, int *indices = NULL) const;
+	double QuantizedError(const RGBAVector &p1, const RGBAVector &p2, BYTE nBuckets, unsigned int bitMask, const RGBAVector &errorMetricVec, const int pbits[2] = NULL, int *indices = NULL) const;
 
 	// Returns the principal axis for this point cluster.
 	void GetPrincipalAxis(RGBADir &axis);

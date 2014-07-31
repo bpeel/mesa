@@ -42,7 +42,7 @@ public:
 	};
 
 	RGBAVectorSIMD() : r(-1.0), g(-1.0), b(-1.0), a(-1.0) { }
-	RGBAVectorSIMD(UINT pixel) :
+	RGBAVectorSIMD(unsigned int pixel) :
 		r(float(pixel & 0xFF)),
 		g(float((pixel >> 8) & 0xFF)),
 		b(float((pixel >> 16) & 0xFF)),

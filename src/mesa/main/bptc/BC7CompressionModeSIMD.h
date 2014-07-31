@@ -147,6 +147,6 @@ protected:
 };
 
 extern const __m128i kBC7InterpolationValuesSIMD[4][16][2];
-extern const UINT kBC7InterpolationValuesScalar[4][16][2];
+extern const unsigned int kBC7InterpolationValuesScalar[4][16][2];
 
 #endif // __BC7_COMPRESSIONMODE_H__

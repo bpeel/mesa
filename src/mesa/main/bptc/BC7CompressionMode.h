@@ -188,6 +188,6 @@ private:
 	const double m_IsOpaque;
 };
 
-extern const UINT kBC7InterpolationValues[4][16][2];
+extern const unsigned int kBC7InterpolationValues[4][16][2];
 
 #endif // __BC7_COMPRESSIONMODE_SIMD_H__

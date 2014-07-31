@@ -35,13 +35,13 @@
 		return val;
 	}
 
-	UINT prec = CountBitsInMask(mask);
-	const UINT step = 1 << (8 - prec);
+	unsigned int prec = CountBitsInMask(mask);
+	const unsigned int step = 1 << (8 - prec);
 
 	assert(step-1 == BYTE(~mask));
 
-	UINT lval = val & mask;
-	UINT hval = lval + step;
+	unsigned int lval = val & mask;
+	unsigned int hval = lval + step;
 
 	if(pBit >= 0) {
 		prec++;
@@ -88,7 +88,7 @@ static const __m128 kByteMax = _mm_set1_ps(255.0f);
 static const __m128 kHalfVector = _mm_set1_ps(0.5f);
 static const __m128i kOneVector = _mm_set1_epi32(1);
 static const __m128i kZeroVector = _mm_set1_epi32(0);
-static const ALIGN_SSE UINT kThirtyTwoVector[4] = { 32, 32, 32, 32 };
+static const ALIGN_SSE unsigned int kThirtyTwoVector[4] = { 32, 32, 32, 32 };
 static const __m128i kByteValMask = _mm_set_epi32(0xFF, 0xFF, 0xFF, 0xFF);
 
 static inline __m128i sad(const __m128i &a, const __m128i &b) {
@@ -100,14 +100,14 @@ static inline __m128i sad(const __m128i &a, const __m128i &b) {
 __m128i RGBAVectorSIMD::ToPixel(const __m128i &qmask) const {
 
 	// !SPEED! We should figure out a way to get rid of these scalar operations.
-	const UINT prec = _mm_popcnt_u32(((UINT *)(&qmask))[0]);
+	const unsigned int prec = _mm_popcnt_u32(((unsigned int *)(&qmask))[0]);
 
 	assert(r >= 0.0f && r <= 255.0f);
 	assert(g >= 0.0f && g <= 255.0f);
 	assert(b >= 0.0f && b <= 255.0f);
 	assert(a >= 0.0f && a <= 255.0f);
-	assert(((UINT *)(&qmask))[3] == 0xFF || ((UINT *)(&qmask))[3] == ((UINT *)(&qmask))[0]);
-	assert(((UINT *)(&qmask))[2] == ((UINT *)(&qmask))[1] && ((UINT *)(&qmask))[0] == ((UINT *)(&qmask))[1]);
+	assert(((unsigned int *)(&qmask))[3] == 0xFF || ((unsigned int *)(&qmask))[3] == ((unsigned int *)(&qmask))[0]);
+	assert(((unsigned int *)(&qmask))[2] == ((unsigned int *)(&qmask))[1] && ((unsigned int *)(&qmask))[0] == ((unsigned int *)(&qmask))[1]);
 
 	const __m128i val = _mm_cvtps_epi32( _mm_add_ps(kHalfVector, vec) );
 
@@ -137,14 +137,14 @@ __m128i RGBAVectorSIMD::ToPixel(const __m128i &qmask) const {
 __m128i RGBAVectorSIMD::ToPixel(const __m128i &qmask, const int pBit) const {
 
 	// !SPEED! We should figure out a way to get rid of these scalar operations.
-	const UINT prec = _mm_popcnt_u32(((UINT *)(&qmask))[0]);
+	const unsigned int prec = _mm_popcnt_u32(((unsigned int *)(&qmask))[0]);
 
 	assert(r >= 0.0f && r <= 255.0f);
 	assert(g >= 0.0f && g <= 255.0f);
 	assert(b >= 0.0f && b <= 255.0f);
 	assert(a >= 0.0f && a <= 255.0f);
-	assert(((UINT *)(&qmask))[3] == 0xFF || ((UINT *)(&qmask))[3] == ((UINT *)(&qmask))[0]);
-	assert(((UINT *)(&qmask))[2] == ((UINT *)(&qmask))[1] && ((UINT *)(&qmask))[0] == ((UINT *)(&qmask))[1]);
+	assert(((unsigned int *)(&qmask))[3] == 0xFF || ((unsigned int *)(&qmask))[3] == ((unsigned int *)(&qmask))[0]);
+	assert(((unsigned int *)(&qmask))[2] == ((unsigned int *)(&qmask))[1] && ((unsigned int *)(&qmask))[0] == ((unsigned int *)(&qmask))[1]);
 
 	const __m128i val = _mm_cvtps_epi32( _mm_add_ps(kHalfVector, vec) );
 	const __m128i pbit = _mm_set1_epi32(!!pBit);
@@ -313,7 +313,7 @@ float RGBAClusterSIMD::QuantizedError(const RGBAVectorSIMD &p1, const RGBAVector
 		}
 
 		totalError = _mm_add_ps(totalError, minError);
-		if(indices) ((UINT *)indices)[i] = ((UINT *)(&bestBucket))[0];
+		if(indices) ((unsigned int *)indices)[i] = ((unsigned int *)(&bestBucket))[0];
 	}
 
 	return ((float *)(&totalError))[0];

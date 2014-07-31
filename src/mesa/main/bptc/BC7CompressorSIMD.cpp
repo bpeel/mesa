@@ -23,7 +23,7 @@
 
 #define ALIGN_SSE __declspec( align(16) )
 
-static const UINT kNumShapes2 = 64;
+static const unsigned int kNumShapes2 = 64;
 static const WORD kShapeMask2[kNumShapes2] = {
 	0xcccc, 0x8888, 0xeeee, 0xecc8, 0xc880, 0xfeec, 0xfec8, 0xec80,
 	0xc800, 0xffec, 0xfe80, 0xe800, 0xffe8, 0xff00, 0xfff0, 0xf000,
@@ -46,7 +46,7 @@ static const int kAnchorIdx2[kNumShapes2] = {
     15,15,15,15,15, 2, 2, 15
 };
 
-static const UINT kNumShapes3 = 64;
+static const unsigned int kNumShapes3 = 64;
 static const WORD kShapeMask3[kNumShapes3][2] = {
 	{ 0xfecc, 0xf600 }, { 0xffc8, 0x7300 }, { 0xff90, 0x3310 }, { 0xecce, 0x00ce }, { 0xff00, 0xcc00 }, { 0xcccc, 0xcc00 }, { 0xffcc, 0x00cc }, { 0xffcc, 0x3300 },
 	{ 0xff00, 0xf000 }, { 0xfff0, 0xf000 }, { 0xfff0, 0xff00 }, { 0xcccc, 0x8888 }, { 0xeeee, 0x8888 }, { 0xeeee, 0xcccc }, { 0xffec, 0xec80 }, { 0x739c, 0x7310 },
@@ -58,9 +58,9 @@ static const WORD kShapeMask3[kNumShapes3][2] = {
 	{ 0xff66, 0xff00 }, { 0xcccc, 0xc00c }, { 0xcffc, 0xcccc }, { 0xf000, 0x9000 }, { 0x8888, 0x0808 }, { 0xfefe, 0xeeee }, { 0xfffa, 0xfff0 }, { 0x7bde, 0x7310 }
 };
 
-static const UINT kWMValues[] = { 0x32b92180, 0x32ba3080, 0x31103200, 0x28103c80, 0x32bb3080, 0x25903600, 0x3530b900, 0x3b32b180, 0x34b5b980 };
-static const UINT kNumWMVals = sizeof(kWMValues) / sizeof(kWMValues[0]);
-static UINT gWMVal = -1;
+static const unsigned int kWMValues[] = { 0x32b92180, 0x32ba3080, 0x31103200, 0x28103c80, 0x32bb3080, 0x25903600, 0x3530b900, 0x3b32b180, 0x34b5b980 };
+static const unsigned int kNumWMVals = sizeof(kWMValues) / sizeof(kWMValues[0]);
+static unsigned int gWMVal = -1;
 
 static const int kAnchorIdx3[2][kNumShapes3] = {
 	{ 3, 3,15,15, 8, 3,15,15,
@@ -82,14 +82,14 @@ static const int kAnchorIdx3[2][kNumShapes3] = {
 	15,15,15,15, 3,15,15, 8 }
 };
 
-const UINT kBC7InterpolationValuesScalar[4][16][2] = {
+const unsigned int kBC7InterpolationValuesScalar[4][16][2] = {
 	{ {64, 0}, {33, 31}, {0, 64}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	{ {64, 0}, {43, 21}, {21, 43}, {0, 64}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	{ {64, 0}, {55, 9}, {46, 18}, {37, 27}, {27, 37}, {18, 46}, {9, 55}, {0, 64}, 0, 0, 0, 0, 0, 0, 0, 0 },
 	{ {64, 0}, {60, 4}, {55, 9}, {51, 13}, {47, 17}, {43, 21}, {38, 26}, {34, 30}, {30, 34}, {26, 38}, {21, 43}, {17, 47}, {13, 51}, {9, 55}, {4, 60}, {0, 64} }
 };
 
-static const ALIGN_SSE UINT kZeroVector[4] = { 0, 0, 0, 0 };
+static const ALIGN_SSE unsigned int kZeroVector[4] = { 0, 0, 0, 0 };
 const __m128i kBC7InterpolationValuesSIMD[4][16][2] = {
 	{
 		{ _mm_set1_epi32(64), *((const __m128i *)kZeroVector)},
@@ -135,7 +135,7 @@ const __m128i kBC7InterpolationValuesSIMD[4][16][2] = {
 	}
 };
 
-static const ALIGN_SSE UINT kByteValMask[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
+static const ALIGN_SSE unsigned int kByteValMask[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
 static inline __m128i sad(const __m128i &a, const __m128i &b) {
 	const __m128i maxab = _mm_max_epu8(a, b);
 	const __m128i minab = _mm_min_epu8(a, b);
@@ -269,16 +269,16 @@ double BC7CompressionModeSIMD::CompressSingleColor(const RGBAVectorSIMD &p, RGBA
 	// Our pixel to compress...
 	const __m128i pixel = p.ToPixel(*((const __m128i *)kByteValMask));
 
-	UINT bestDist = 0xFF;
+	unsigned int bestDist = 0xFF;
 	bestPbitCombo = -1;
 
 	for(int pbi = 0; pbi < GetNumPbitCombos(); pbi++) {
 
 		const int *pbitCombo = GetPBitCombo(pbi);
 
-		UINT dist = 0x0;
-		UINT bestValI[kNumColorChannels] = { -1, -1, -1, -1 };
-		UINT bestValJ[kNumColorChannels] = { -1, -1, -1, -1 };
+		unsigned int dist = 0x0;
+		unsigned int bestValI[kNumColorChannels] = { -1, -1, -1, -1 };
+		unsigned int bestValJ[kNumColorChannels] = { -1, -1, -1, -1 };
 
 		for(int ci = 0; ci < kNumColorChannels; ci++) {
 
@@ -322,19 +322,19 @@ double BC7CompressionModeSIMD::CompressSingleColor(const RGBAVectorSIMD &p, RGBA
 				possValsL[i] |= (possValsL[i] >> nBits);
 			}
 
-			const UINT interpVal0 = kBC7InterpolationValuesScalar[GetNumberOfBitsPerIndex() - 1][1][0];
-			const UINT interpVal1 = kBC7InterpolationValuesScalar[GetNumberOfBitsPerIndex() - 1][1][1];
+			const unsigned int interpVal0 = kBC7InterpolationValuesScalar[GetNumberOfBitsPerIndex() - 1][1][0];
+			const unsigned int interpVal1 = kBC7InterpolationValuesScalar[GetNumberOfBitsPerIndex() - 1][1][1];
 
 			// Find the closest interpolated val that to the given val...
-			UINT bestChannelDist = 0xFF;
+			unsigned int bestChannelDist = 0xFF;
 			for(int i = 0; bestChannelDist > 0 && i < nPossVals; i++)
 			for(int j = 0; bestChannelDist > 0 && j < nPossVals; j++) {
 
-				const UINT v1 = possValsL[i];
-				const UINT v2 = possValsH[j];
+				const unsigned int v1 = possValsL[i];
+				const unsigned int v2 = possValsH[j];
 
-				const UINT combo = (interpVal0*v1 + (interpVal1 * v2) + 32) >> 6;
-				const UINT err = (combo > val)? combo - val : val - combo;
+				const unsigned int combo = (interpVal0*v1 + (interpVal1 * v2) + 32) >> 6;
+				const unsigned int err = (combo > val)? combo - val : val - combo;
 
 				if(err < bestChannelDist) {
 					bestChannelDist = err;
@@ -360,12 +360,12 @@ double BC7CompressionModeSIMD::CompressSingleColor(const RGBAVectorSIMD &p, RGBA
 	return bestDist;
 }
 
-static const ALIGN_SSE UINT kOneVec[4] = { 1, 1, 1, 1 };
+static const ALIGN_SSE unsigned int kOneVec[4] = { 1, 1, 1, 1 };
 
 // Fast random number generator. See more information at
 // http://software.intel.com/en-us/articles/fast-random-number-generator-on-the-intel-pentiumr-4-processor/
-static UINT g_seed = UINT(time(NULL));
-static inline UINT fastrand() {
+static unsigned int g_seed = unsigned int(time(NULL));
+static inline unsigned int fastrand() {
 	g_seed = (214013 * g_seed + 2531011);
 	return (g_seed>>16) & RAND_MAX;
 }
@@ -375,9 +375,9 @@ static inline __m128i rand_dir()
 {
 	// static const __m128i mult = _mm_set_epi32( 214013, 17405, 214013, 69069 );
 	// static const __m128i gadd = _mm_set_epi32( 2531011, 10395331, 13737667, 1 );
-	static const __declspec( align(16) ) UINT mult[4] = { 214013, 17405, 214013, 0 };
-	static const __declspec( align(16) ) UINT gadd[4] = { 2531011, 10395331, 13737667, 0 };
-	static const __declspec( align(16) ) UINT masklo[4] = { RAND_MAX, RAND_MAX, RAND_MAX, RAND_MAX };
+	static const __declspec( align(16) ) unsigned int mult[4] = { 214013, 17405, 214013, 0 };
+	static const __declspec( align(16) ) unsigned int gadd[4] = { 2531011, 10395331, 13737667, 0 };
+	static const __declspec( align(16) ) unsigned int masklo[4] = { RAND_MAX, RAND_MAX, RAND_MAX, RAND_MAX };
 
 	cur_seed = _mm_mullo_epi32( *((const __m128i *)mult), cur_seed );
 	cur_seed = _mm_add_epi32( *((const __m128i *)gadd), cur_seed );
@@ -405,14 +405,14 @@ static inline float frand() {
 	// into the top of the 23 bit mantissa, and
 	// repeat the most significant bits of r in
 	// the least significant of the mantissa
-	const UINT m = (r << 8) | (r >> 7);
-	const UINT flt = (127 << 23) | m;
+	const unsigned int m = (r << 8) | (r >> 7);
+	const unsigned int flt = (127 << 23) | m;
 	return *(reinterpret_cast<const float *>(&flt)) - 1.0f;
 }
 
-static const ALIGN_SSE UINT kSevenVec[4] = { 7, 7, 7, 7 };
-static const ALIGN_SSE UINT kNegOneVec[4] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
-static const ALIGN_SSE UINT kFloatSignBit[4] = { 0x40000000, 0x40000000, 0x40000000, 0x40000000 };
+static const ALIGN_SSE unsigned int kSevenVec[4] = { 7, 7, 7, 7 };
+static const ALIGN_SSE unsigned int kNegOneVec[4] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
+static const ALIGN_SSE unsigned int kFloatSignBit[4] = { 0x40000000, 0x40000000, 0x40000000, 0x40000000 };
 
 static void ChangePointForDirWithoutPbitChange(RGBAVectorSIMD &v, const __m128 &stepVec) {
 
@@ -896,12 +896,12 @@ namespace BC7C
 	ErrorMetric GetErrorMetricEnum() { return gErrorMetric; }
 
 	// Function prototypes
-	static void ExtractBlock(const BYTE* inPtr, int width, UINT* colorBlock);
-	static void CompressBC7Block(const UINT *block, BYTE *outBuf);
+	static void ExtractBlock(const BYTE* inPtr, int width, unsigned int* colorBlock);
+	static void CompressBC7Block(const unsigned int *block, BYTE *outBuf);
 
 	// Returns true if the entire block is a single color.
-	static bool AllOneColor(const UINT block[16]) {
-		const UINT pixel = block[0];
+	static bool AllOneColor(const unsigned int block[16]) {
+		const unsigned int pixel = block[0];
 		for(int i = 1; i < 16; i++) {
 			if( block[i] != pixel )
 				return false;
@@ -919,7 +919,7 @@ namespace BC7C
 	}
 
 	// Compresses a single color optimally and outputs the result.
-	static void CompressOptimalColorBC7(UINT pixel, BitStream &stream) {
+	static void CompressOptimalColorBC7(unsigned int pixel, BitStream &stream) {
 
 		stream.WriteBits(1 << 5, 6); // Mode 5
 		stream.WriteBits(0, 2); // No rotation bits.
@@ -961,7 +961,7 @@ namespace BC7C
 	// implementation has an 4:1 compression ratio.
 	void CompressImageBC7SIMD(const BYTE* inBuf, BYTE* outBuf, int width, int height)
 	{
-		__declspec( align(16) ) UINT block[16];
+		__declspec( align(16) ) unsigned int block[16];
 
 		_MM_SET_ROUNDING_MODE( _MM_ROUND_TOWARD_ZERO );
 		BC7CompressionModeSIMD::ResetNumUses();
@@ -981,7 +981,7 @@ namespace BC7C
 
 	// Extract a 4 by 4 block of pixels from inPtr and store it in colorBlock. The width parameter
 	// specifies the size of the image in pixels.
-	static void ExtractBlock(const BYTE* inPtr, int width, UINT* colorBlock)
+	static void ExtractBlock(const BYTE* inPtr, int width, unsigned int* colorBlock)
 	{
 		// Compute the stride.
 		const int stride = width * 4;
@@ -1124,12 +1124,12 @@ namespace BC7C
 	}
 
 	// Compress a single block.
-	void CompressBC7Block(const UINT *block, BYTE *outBuf) {
+	void CompressBC7Block(const unsigned int *block, BYTE *outBuf) {
 
 		// All a single color?
 		if(AllOneColor(block)) {
 			BitStream bStrm(outBuf, 128, 0);
-			CompressOptimalColorBC7(*((const UINT *)block), bStrm);
+			CompressOptimalColorBC7(*((const unsigned int *)block), bStrm);
 			return;
 		}
 
