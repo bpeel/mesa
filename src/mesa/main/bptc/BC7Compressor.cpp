@@ -1582,7 +1582,7 @@ namespace BC7C
 		int bestShapeIdx[2] = { -1, -1 };
 		RGBACluster bestClusters[2][3];
 
-		for(int i = 0; i < kNumShapes2; i++)
+		for(int i = 0; i < (int) kNumShapes2; i++)
 		{
 			RGBACluster clusters[2];
 			PopulateTwoClustersForShape(blockCluster, i, clusters);
@@ -1610,7 +1610,7 @@ namespace BC7C
 		// There are not 3 subset blocks that support alpha, so only check these
 		// if the entire block is opaque.
 		if(opaque) {
-			for(int i = 0; i < kNumShapes3; i++) {
+			for(int i = 0; i < (int) kNumShapes3; i++) {
 
 				RGBACluster clusters[3];
 				PopulateThreeClustersForShape(blockCluster, i, clusters);
