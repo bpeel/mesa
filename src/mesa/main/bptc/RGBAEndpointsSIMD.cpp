@@ -79,8 +79,8 @@
 
 #define ALIGN_SSE __declspec ( align(16) )
 
-// Constants. There are two ways to specify them: either by using the _mm_set* 
-// intrinsics, or by defining them as aligned arrays. You want to do the former 
+// Constants. There are two ways to specify them: either by using the _mm_set*
+// intrinsics, or by defining them as aligned arrays. You want to do the former
 // when you use them infrequently, and the latter when you use them multiple times
 // in a short time frame (like in an inner loop)
 static const __m128 kZero = _mm_set1_ps(0.0f);
@@ -101,7 +101,7 @@ __m128i RGBAVectorSIMD::ToPixel(const __m128i &qmask) const {
 
 	// !SPEED! We should figure out a way to get rid of these scalar operations.
 	const UINT prec = _mm_popcnt_u32(((UINT *)(&qmask))[0]);
-	
+
 	assert(r >= 0.0f && r <= 255.0f);
 	assert(g >= 0.0f && g <= 255.0f);
 	assert(b >= 0.0f && b <= 255.0f);
@@ -135,10 +135,10 @@ __m128i RGBAVectorSIMD::ToPixel(const __m128i &qmask) const {
 }
 
 __m128i RGBAVectorSIMD::ToPixel(const __m128i &qmask, const int pBit) const {
-	
+
 	// !SPEED! We should figure out a way to get rid of these scalar operations.
 	const UINT prec = _mm_popcnt_u32(((UINT *)(&qmask))[0]);
-	
+
 	assert(r >= 0.0f && r <= 255.0f);
 	assert(g >= 0.0f && g <= 255.0f);
 	assert(b >= 0.0f && b <= 255.0f);
@@ -201,7 +201,7 @@ __m128i RGBAVectorSIMD::ToPixel(const __m128i &qmask, const int pBit) const {
 ///////////////////////////////////////////////////////////////////////////////
 
 RGBAVectorSIMD RGBAMatrixSIMD::operator *(const RGBAVectorSIMD &p) const {
-	
+
 	__m128 xVec = _mm_set1_ps( p.x );
 	__m128 yVec = _mm_set1_ps( p.y );
 	__m128 zVec = _mm_set1_ps( p.z );
@@ -240,7 +240,7 @@ RGBAClusterSIMD::RGBAClusterSIMD(const RGBAClusterSIMD &left, const RGBAClusterS
 
 	m_PointBitString = left.m_PointBitString | right.m_PointBitString;
 	m_PrincipalAxisCached = false;
-}	
+}
 
 void RGBAClusterSIMD::AddPoint(const RGBAVectorSIMD &p, int idx) {
 	assert(m_NumPoints < kMaxNumDataPoints);
@@ -294,7 +294,7 @@ float RGBAClusterSIMD::QuantizedError(const RGBAVectorSIMD &p1, const RGBAVector
 			const __m128i ip = _mm_add_epi32( *((const __m128i *)kThirtyTwoVector), _mm_add_epi32( ip0, ip1 ) );
 			const __m128i dist = sad( _mm_and_si128( _mm_srli_epi32( ip, 6 ), kByteValMask ), pixel );
 			__m128 errorVec = _mm_cvtepi32_ps( dist );
-			
+
 			errorVec = _mm_mul_ps( errorVec, errorMetricVec );
 			errorVec = _mm_mul_ps( errorVec, errorVec );
 			errorVec = _mm_hadd_ps( errorVec, errorVec );
@@ -307,7 +307,7 @@ float RGBAClusterSIMD::QuantizedError(const RGBAVectorSIMD &p1, const RGBAVector
 			// Conceptually, once the error starts growing, it doesn't stop growing (we're moving
 			// farther away from the reference point along the line). Hence we can early out here.
 			// However, quanitzation artifacts mean that this is not ALWAYS the case, so we do suffer
-			// about 0.01 RMS error. 
+			// about 0.01 RMS error.
 			if(!((BYTE *)(&cmp))[0])
 				break;
 		}
@@ -374,9 +374,9 @@ void GetPrincipalAxis(const RGBAClusterSIMD &c, RGBADirSIMD &axis) {
 	RGBAVectorSIMD newB = covMatrix * b;
 
 	// !HACK! If the principal eigenvector of the covariance matrix
-	// converges to zero, that means that the points lie equally 
+	// converges to zero, that means that the points lie equally
 	// spaced on a sphere in this space. In this (extremely rare)
-	// situation, just choose a point and use it as the principal 
+	// situation, just choose a point and use it as the principal
 	// direction.
 	const float newBlen = newB.Length();
 	if(newBlen < 1e-10) {

@@ -43,10 +43,10 @@ public:
 	};
 
 	RGBAVectorSIMD() : r(-1.0), g(-1.0), b(-1.0), a(-1.0) { }
-	RGBAVectorSIMD(UINT pixel) : 
-		r(float(pixel & 0xFF)), 
-		g(float((pixel >> 8) & 0xFF)), 
-		b(float((pixel >> 16) & 0xFF)), 
+	RGBAVectorSIMD(UINT pixel) :
+		r(float(pixel & 0xFF)),
+		g(float((pixel >> 8) & 0xFF)),
+		b(float((pixel >> 16) & 0xFF)),
 		a(float((pixel >> 24) & 0xFF))
 	{ }
 
@@ -163,13 +163,13 @@ private:
 	}
 
 	RGBAMatrixSIMD(const __m128 newcol[kNumColorChannels]) {
-		for(int i = 0; i < kNumColorChannels; i++) 
+		for(int i = 0; i < kNumColorChannels; i++)
 			col[i] = newcol[i];
 	}
 
 public:
-	
-	RGBAMatrixSIMD() : 
+
+	RGBAMatrixSIMD() :
 		m1(1.0f), m2(0.0f), m3(0.0f), m4(0.0f),
 		m5(0.0f), m6(1.0f), m7(0.0f), m8(0.0f),
 		m9(0.0f), m10(0.0f), m11(1.0f), m12(0.0f),
@@ -255,7 +255,7 @@ public:
 
 	RGBAMatrixSIMD &operator *=(const float s) {
 		__m128 f = _mm_set1_ps(s);
-		for(int i = 0; i < kNumColorChannels; i++) 
+		for(int i = 0; i < kNumColorChannels; i++)
 			col[i] = _mm_mul_ps(col[i], f);
 		return *this;
 	}
@@ -269,7 +269,7 @@ public:
 	}
 
 	friend bool operator ==(const RGBAMatrixSIMD &rhs, const RGBAMatrixSIMD &lhs) {
-		
+
 		__m128 sum = _mm_set1_ps(0.0f);
 		for(int i = 0; i < kNumColorChannels; i++) {
 			__m128 d = _mm_sub_ps(rhs.col[i], lhs.col[i]);
@@ -307,37 +307,37 @@ extern void ClampEndpoints(RGBAVectorSIMD &p1, RGBAVectorSIMD &p2);
 class RGBAClusterSIMD {
 public:
 
-	RGBAClusterSIMD() : 
-	  m_NumPoints(0), m_Total(0.0f), 
+	RGBAClusterSIMD() :
+	  m_NumPoints(0), m_Total(0.0f),
 	  m_PointBitString(0),
 	  m_Min(FLT_MAX),
 	  m_Max(-FLT_MAX),
 	  m_PrincipalAxisCached(false)
-	{ } 
+	{ }
 
-	RGBAClusterSIMD(const RGBAClusterSIMD &c) : 
+	RGBAClusterSIMD(const RGBAClusterSIMD &c) :
 		m_NumPoints(c.m_NumPoints),
 		m_Total(c.m_Total),
-		m_PointBitString(c.m_PointBitString), 
+		m_PointBitString(c.m_PointBitString),
 		m_Min(c.m_Min),
 		m_Max(c.m_Max),
 		m_PrincipalAxisCached(false)
-	{ 
+	{
 		memcpy(this->m_DataPoints, c.m_DataPoints, m_NumPoints * sizeof(RGBAVectorSIMD));
 	}
 
 	RGBAClusterSIMD(const RGBAClusterSIMD &left, const RGBAClusterSIMD &right);
-	RGBAClusterSIMD(const RGBAVectorSIMD &p, int idx) : 
+	RGBAClusterSIMD(const RGBAVectorSIMD &p, int idx) :
 		m_NumPoints(1),
 		m_Total(p),
 		m_PointBitString(0),
 		m_Min(p), m_Max(p),
 		m_PrincipalAxisCached(false)
-	{ 
+	{
 		m_DataPoints[0] = p;
 		m_PointBitString |= (1 << idx);
 	}
-			
+
 	RGBAVectorSIMD GetTotal() const { return m_Total; }
 	const RGBAVectorSIMD &GetPoint(int idx) const { return m_DataPoints[idx]; }
 	int GetNumPoints() const { return m_NumPoints; }

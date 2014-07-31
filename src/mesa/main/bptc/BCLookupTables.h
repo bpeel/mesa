@@ -65,7 +65,7 @@
 		tableEntry[1] = vals[mink];
 
 		wchar_t tableEntryStr[256];
-		swprintf(tableEntryStr, 256, L"{ 0x%02x, 0x%02x },\n", 
+		swprintf(tableEntryStr, 256, L"{ 0x%02x, 0x%02x },\n",
 			tableEntry[0] >> (8 - nbits),
 			tableEntry[1] >> (8 - nbits)
 		);
@@ -333,7 +333,7 @@ static unsigned char Optimal7CompressBC7Mode5[256][2] = {
 
 // For each value, we give the best possible compression range for that value with 5 bits.
 // The first value says whether or not it's
-// 1 - the midpoint of two other values, or 
+// 1 - the midpoint of two other values, or
 // 0 - 1/3 of the way in between two other values.
 // If the first value is 1 or 2 then the last two values are the range between which the
 // value should be interpolated. If the first value is 2, then it should be interpolated
@@ -404,7 +404,7 @@ static unsigned char Optimal7CompressBC7Mode5[256][2] = {
 
 		wchar_t tableEntryStr[256];
 		if(tableEntry[1][3] > tableEntry[0][3]) {
-			swprintf(tableEntryStr, 256, L"{ { %d, 0x%02x, 0x%02x }, { %d, 0x%02x, 0x%02x } },\n", 
+			swprintf(tableEntryStr, 256, L"{ { %d, 0x%02x, 0x%02x }, { %d, 0x%02x, 0x%02x } },\n",
 				tableEntry[0][0],
 				tableEntry[0][1] >> (8 - nbits),
 				tableEntry[0][2] >> (8 - nbits),
@@ -414,7 +414,7 @@ static unsigned char Optimal7CompressBC7Mode5[256][2] = {
 			);
 		}
 		else {
-			swprintf(tableEntryStr, 256, L"{ { %d, 0x%02x, 0x%02x }, { %d, 0x%02x, 0x%02x } },\n", 
+			swprintf(tableEntryStr, 256, L"{ { %d, 0x%02x, 0x%02x }, { %d, 0x%02x, 0x%02x } },\n",
 				tableEntry[1][0],
 				tableEntry[1][1] >> (8 - nbits),
 				tableEntry[1][2] >> (8 - nbits),

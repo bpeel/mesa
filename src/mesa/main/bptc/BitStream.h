@@ -30,7 +30,7 @@ public:
 	{ }
 
 	int GetBitsWritten() const { return m_BitsWritten; }
-	  
+
 	~BitStream() { }
 	void WriteBitsR(unsigned int val, unsigned int nBits) {
 		for(unsigned int i = 0; i < nBits; i++) {
@@ -84,9 +84,9 @@ public:
 	{ }
 
 	int GetBitsRead() const { return m_BitsRead; }
-	  
+
 	~BitStreamReadOnly() { }
-	
+
 	int ReadBit() {
 
 		int bit = *m_CurByte >> m_NextBit++;
@@ -94,7 +94,7 @@ public:
 			m_NextBit -= 8;
 			m_CurByte++;
 		}
-		
+
 		m_BitsRead++;
 		return bit & 1;
 	}

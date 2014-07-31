@@ -23,8 +23,8 @@
 namespace BC7C
 {
 	// This is the error metric that is applied to our error measurement algorithm
-	// in order to bias calculation towards results that are more in-line with 
-	// how the Human Visual System works. Uniform error means that each color 
+	// in order to bias calculation towards results that are more in-line with
+	// how the Human Visual System works. Uniform error means that each color
 	// channel is treated equally. For a while, the widely accepted non-uniform metric
 	// has been to give red 30%, green 59% and blue 11% weight when computing the error
 	// between two pixels.
@@ -32,7 +32,7 @@ namespace BC7C
 	{
 		eErrorMetric_Uniform, // Treats r, g, and b channels equally
 		eErrorMetric_Nonuniform, // { 0.3, 0.59, 0.11 }
-		
+
 		kNumErrorMetrics
 	};
 

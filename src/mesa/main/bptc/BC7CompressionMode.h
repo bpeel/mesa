@@ -33,7 +33,7 @@ static const int kPBits[4][2] = {
 	{ 1, 1 }
 };
 
-// Abstract class that outlines all of the different settings for BC7 compression modes 
+// Abstract class that outlines all of the different settings for BC7 compression modes
 // Note that at the moment, we only support modes 0-3, so we don't deal with alpha channels.
 class BC7CompressionMode {
 public:
@@ -80,7 +80,7 @@ public:
 	}
 
 private:
-	
+
 	const Attributes *const m_Attributes;
 
 	int m_RotateMode;
@@ -95,27 +95,27 @@ private:
 	int GetNumberOfPartitionBits() const { return m_Attributes->numPartitionBits; }
 	int GetNumberOfSubsets() const { return m_Attributes->numSubsets; }
 
-	int GetNumberOfBitsPerIndex(int indexMode = -1) const { 
+	int GetNumberOfBitsPerIndex(int indexMode = -1) const {
 		if(indexMode < 0) indexMode = m_IndexMode;
 		if(indexMode == 0)
-			return m_Attributes->numBitsPerIndex; 
+			return m_Attributes->numBitsPerIndex;
 		else
-			return m_Attributes->numBitsPerAlpha; 
+			return m_Attributes->numBitsPerAlpha;
 	}
 
-	int GetNumberOfBitsPerAlpha(int indexMode = -1) const { 
+	int GetNumberOfBitsPerAlpha(int indexMode = -1) const {
 		if(indexMode < 0) indexMode = m_IndexMode;
 		if(indexMode == 0)
-			return m_Attributes->numBitsPerAlpha; 
+			return m_Attributes->numBitsPerAlpha;
 		else
-			return m_Attributes->numBitsPerIndex; 
+			return m_Attributes->numBitsPerIndex;
 	}
 
 	// If we handle alpha separately, then we will consider the alpha channel
 	// to be not used whenever we do any calculations...
-	int GetAlphaChannelPrecision() const { 
+	int GetAlphaChannelPrecision() const {
 		if(m_Attributes->hasRotation) return 0;
-		else return m_Attributes->alphaChannelPrecision;  
+		else return m_Attributes->alphaChannelPrecision;
 	}
 
 	RGBAVector GetErrorMetric() const {
@@ -131,7 +131,7 @@ private:
 
 	EPBitType GetPBitType() const { return m_Attributes->pbitType; }
 
-	unsigned int GetQuantizationMask() const {	
+	unsigned int GetQuantizationMask() const {
 		const int maskSeed = 0x80000000;
 		return (
 			(maskSeed >> (24 + m_Attributes->colorChannelPrecision - 1) & 0xFF) |
@@ -158,7 +158,7 @@ private:
 			case ePBitType_None: return kPBits[0];
 		}
 	}
-	
+
 	double OptimizeEndpointsForCluster(const RGBACluster &cluster, RGBAVector &p1, RGBAVector &p2, int *bestIndices, int &bestPbitCombo) const;
 
 	struct VisitedState {
@@ -168,13 +168,13 @@ private:
 	};
 
 	void PickBestNeighboringEndpoints(
-		const RGBACluster &cluster, 
-		const RGBAVector &p1, const RGBAVector &p2, 
-		const int curPbitCombo, 
-		RGBAVector &np1, RGBAVector &np2, 
-		int &nPbitCombo, 
-		const VisitedState *visitedStates, 
-		int nVisited, 
+		const RGBACluster &cluster,
+		const RGBAVector &p1, const RGBAVector &p2,
+		const int curPbitCombo,
+		RGBAVector &np1, RGBAVector &np2,
+		int &nPbitCombo,
+		const VisitedState *visitedStates,
+		int nVisited,
 		float stepSz = 1.0f
 	) const;
 

@@ -37,10 +37,10 @@ public:
 	UINT GetIdx() const { return  idx; }
 
 	RGBAVector() : r(-1.0), g(-1.0), b(-1.0), a(-1.0) { }
-	RGBAVector(UINT _idx, UINT pixel) : 
-		r(float(pixel & 0xFF)), 
-		g(float((pixel >> 8) & 0xFF)), 
-		b(float((pixel >> 16) & 0xFF)), 
+	RGBAVector(UINT _idx, UINT pixel) :
+		r(float(pixel & 0xFF)),
+		g(float((pixel >> 8) & 0xFF)),
+		b(float((pixel >> 16) & 0xFF)),
 		a(float((pixel >> 24) & 0xFF)),
 		idx(_idx)
 	{ }
@@ -159,8 +159,8 @@ private:
 	}
 
 public:
-	
-	RGBAMatrix() : 
+
+	RGBAMatrix() :
 		m1(1.0f), m2(0.0f), m3(0.0f), m4(0.0f),
 		m5(0.0f), m6(1.0f), m7(0.0f), m8(0.0f),
 		m9(0.0f), m10(0.0f), m11(1.0f), m12(0.0f),
@@ -220,13 +220,13 @@ public:
 	friend RGBAMatrix operator *(const float s, const RGBAMatrix &p) {
 		float newm[kNumColorChannels*kNumColorChannels];
 		for(int i = 0; i < kNumColorChannels*kNumColorChannels; i++) newm[i] = p.m[i] * s;
-		return RGBAMatrix(newm);	
+		return RGBAMatrix(newm);
 	}
 
 	friend RGBAMatrix operator *(const double s, const RGBAMatrix &p) {
 		float newm[kNumColorChannels*kNumColorChannels];
 		for(int i = 0; i < kNumColorChannels*kNumColorChannels; i++) newm[i] = float(double(p.m[i]) * s);
-		return RGBAMatrix(newm);	
+		return RGBAMatrix(newm);
 	}
 
 	RGBAMatrix &operator *=(const float s) {
@@ -278,37 +278,37 @@ extern void ClampEndpoints(RGBAVector &p1, RGBAVector &p2);
 class RGBACluster {
 public:
 
-	RGBACluster() : 
-	  m_NumPoints(0), m_Total(0), 
+	RGBACluster() :
+	  m_NumPoints(0), m_Total(0),
 	  m_PointBitString(0),
 	  m_Min(FLT_MAX),
 	  m_Max(-FLT_MAX),
 	  m_PrincipalAxisCached(false)
-	{ } 
+	{ }
 
-	RGBACluster(const RGBACluster &c) : 
+	RGBACluster(const RGBACluster &c) :
 		m_NumPoints(c.m_NumPoints),
 		m_Total(c.m_Total),
-		m_PointBitString(c.m_PointBitString), 
+		m_PointBitString(c.m_PointBitString),
 		m_Min(c.m_Min),
 		m_Max(c.m_Max),
 		m_PrincipalAxisCached(false)
-	{ 
+	{
 		memcpy(this->m_DataPoints, c.m_DataPoints, m_NumPoints * sizeof(RGBAVector));
 	}
 
 	RGBACluster(const RGBACluster &left, const RGBACluster &right);
-	RGBACluster(const RGBAVector &p) : 
+	RGBACluster(const RGBAVector &p) :
 		m_NumPoints(1),
 		m_Total(p),
 		m_PointBitString(0),
 		m_Min(p), m_Max(p),
 		m_PrincipalAxisCached(false)
-	{ 
+	{
 		m_DataPoints[0] = p;
 		m_PointBitString |= (1 << p.GetIdx());
 	}
-			
+
 	RGBAVector GetTotal() const { return m_Total; }
 	const RGBAVector &GetPoint(int idx) const { return m_DataPoints[idx]; }
 	int GetNumPoints() const { return m_NumPoints; }

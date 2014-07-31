@@ -91,47 +91,47 @@ const UINT kBC7InterpolationValuesScalar[4][16][2] = {
 
 static const ALIGN_SSE UINT kZeroVector[4] = { 0, 0, 0, 0 };
 const __m128i kBC7InterpolationValuesSIMD[4][16][2] = {
-	{ 
-		{ _mm_set1_epi32(64), *((const __m128i *)kZeroVector)}, 
-		{ _mm_set1_epi32(33), _mm_set1_epi32(31) }, 
-		{ *((const __m128i *)kZeroVector), _mm_set1_epi32(64) }, 
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 
+	{
+		{ _mm_set1_epi32(64), *((const __m128i *)kZeroVector)},
+		{ _mm_set1_epi32(33), _mm_set1_epi32(31) },
+		{ *((const __m128i *)kZeroVector), _mm_set1_epi32(64) },
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	},
-	{ 
-		{ _mm_set1_epi32(64), *((const __m128i *)kZeroVector)}, 
-		{ _mm_set1_epi32(43), _mm_set1_epi32(21)}, 
-		{ _mm_set1_epi32(21), _mm_set1_epi32(43)}, 
-		{ *((const __m128i *)kZeroVector), _mm_set1_epi32(64)}, 
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 
+	{
+		{ _mm_set1_epi32(64), *((const __m128i *)kZeroVector)},
+		{ _mm_set1_epi32(43), _mm_set1_epi32(21)},
+		{ _mm_set1_epi32(21), _mm_set1_epi32(43)},
+		{ *((const __m128i *)kZeroVector), _mm_set1_epi32(64)},
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	},
-	{ 
-		{ _mm_set1_epi32(64), *((const __m128i *)kZeroVector) }, 
-		{ _mm_set1_epi32(55), _mm_set1_epi32(9) }, 
-		{ _mm_set1_epi32(46), _mm_set1_epi32(18)}, 
-		{ _mm_set1_epi32(37), _mm_set1_epi32(27)}, 
-		{ _mm_set1_epi32(27), _mm_set1_epi32(37)}, 
-		{ _mm_set1_epi32(18), _mm_set1_epi32(46)}, 
-		{ _mm_set1_epi32(9), _mm_set1_epi32(55)}, 
-		{ *((const __m128i *)kZeroVector), _mm_set1_epi32(64)}, 
-		0, 0, 0, 0, 0, 0, 0, 0 
+	{
+		{ _mm_set1_epi32(64), *((const __m128i *)kZeroVector) },
+		{ _mm_set1_epi32(55), _mm_set1_epi32(9) },
+		{ _mm_set1_epi32(46), _mm_set1_epi32(18)},
+		{ _mm_set1_epi32(37), _mm_set1_epi32(27)},
+		{ _mm_set1_epi32(27), _mm_set1_epi32(37)},
+		{ _mm_set1_epi32(18), _mm_set1_epi32(46)},
+		{ _mm_set1_epi32(9), _mm_set1_epi32(55)},
+		{ *((const __m128i *)kZeroVector), _mm_set1_epi32(64)},
+		0, 0, 0, 0, 0, 0, 0, 0
 	},
-	{ 
-		{ _mm_set1_epi32(64), *((const __m128i *)kZeroVector)}, 
-		{ _mm_set1_epi32(60), _mm_set1_epi32(4)}, 
-		{ _mm_set1_epi32(55), _mm_set1_epi32(9)}, 
-		{ _mm_set1_epi32(51), _mm_set1_epi32(13)}, 
-		{ _mm_set1_epi32(47), _mm_set1_epi32(17)}, 
-		{ _mm_set1_epi32(43), _mm_set1_epi32(21)}, 
-		{ _mm_set1_epi32(38), _mm_set1_epi32(26)}, 
-		{ _mm_set1_epi32(34), _mm_set1_epi32(30)}, 
-		{ _mm_set1_epi32(30), _mm_set1_epi32(34)}, 
-		{ _mm_set1_epi32(26), _mm_set1_epi32(38)}, 
-		{ _mm_set1_epi32(21), _mm_set1_epi32(43)}, 
-		{ _mm_set1_epi32(17), _mm_set1_epi32(47)}, 
-		{ _mm_set1_epi32(13), _mm_set1_epi32(51)}, 
-		{ _mm_set1_epi32(9), _mm_set1_epi32(55)}, 
-		{ _mm_set1_epi32(4), _mm_set1_epi32(60)}, 
-		{ *((const __m128i *)kZeroVector), _mm_set1_epi32(64)} 
+	{
+		{ _mm_set1_epi32(64), *((const __m128i *)kZeroVector)},
+		{ _mm_set1_epi32(60), _mm_set1_epi32(4)},
+		{ _mm_set1_epi32(55), _mm_set1_epi32(9)},
+		{ _mm_set1_epi32(51), _mm_set1_epi32(13)},
+		{ _mm_set1_epi32(47), _mm_set1_epi32(17)},
+		{ _mm_set1_epi32(43), _mm_set1_epi32(21)},
+		{ _mm_set1_epi32(38), _mm_set1_epi32(26)},
+		{ _mm_set1_epi32(34), _mm_set1_epi32(30)},
+		{ _mm_set1_epi32(30), _mm_set1_epi32(34)},
+		{ _mm_set1_epi32(26), _mm_set1_epi32(38)},
+		{ _mm_set1_epi32(21), _mm_set1_epi32(43)},
+		{ _mm_set1_epi32(17), _mm_set1_epi32(47)},
+		{ _mm_set1_epi32(13), _mm_set1_epi32(51)},
+		{ _mm_set1_epi32(9), _mm_set1_epi32(55)},
+		{ _mm_set1_epi32(4), _mm_set1_epi32(60)},
+		{ *((const __m128i *)kZeroVector), _mm_set1_epi32(64)}
 	}
 };
 
@@ -173,7 +173,7 @@ void BC7CompressionModeSIMD::ClampEndpointsToGrid(RGBAVectorSIMD &p1, RGBAVector
 
 	// !SPEED! This can be faster. We're searching through all possible
 	// pBit combos to find the best one. Instead, we should be seeing what
-	// the pBit type is for this compression mode and finding the closest 
+	// the pBit type is for this compression mode and finding the closest
 	// quantization.
 	float minDist = FLT_MAX;
 	RGBAVectorSIMD bp1, bp2;
@@ -208,7 +208,7 @@ void BC7CompressionModeSIMD::ClampEndpointsToGrid(RGBAVectorSIMD &p1, RGBAVector
 
 int BC7CompressionModeSIMD::GetSubsetForIndex(int idx, const int shapeIdx) const {
 	int subset = 0;
-	
+
 	const int nSubsets = GetNumberOfSubsets();
 	switch(nSubsets) {
 		case 2:
@@ -234,7 +234,7 @@ int BC7CompressionModeSIMD::GetSubsetForIndex(int idx, const int shapeIdx) const
 }
 
 int BC7CompressionModeSIMD::GetAnchorIndexForSubset(int subset, const int shapeIdx) const {
-	
+
 	const int nSubsets = GetNumberOfSubsets();
 	int anchorIdx = 0;
 
@@ -275,7 +275,7 @@ double BC7CompressionModeSIMD::CompressSingleColor(const RGBAVectorSIMD &p, RGBA
 	for(int pbi = 0; pbi < GetNumPbitCombos(); pbi++) {
 
 		const int *pbitCombo = GetPBitCombo(pbi);
-		
+
 		UINT dist = 0x0;
 		UINT bestValI[kNumColorChannels] = { -1, -1, -1, -1 };
 		UINT bestValJ[kNumColorChannels] = { -1, -1, -1, -1 };
@@ -362,23 +362,23 @@ double BC7CompressionModeSIMD::CompressSingleColor(const RGBAVectorSIMD &p, RGBA
 
 static const ALIGN_SSE UINT kOneVec[4] = { 1, 1, 1, 1 };
 
-// Fast random number generator. See more information at 
+// Fast random number generator. See more information at
 // http://software.intel.com/en-us/articles/fast-random-number-generator-on-the-intel-pentiumr-4-processor/
 static UINT g_seed = UINT(time(NULL));
-static inline UINT fastrand() { 
-	g_seed = (214013 * g_seed + 2531011); 
-	return (g_seed>>16) & RAND_MAX; 
-} 
+static inline UINT fastrand() {
+	g_seed = (214013 * g_seed + 2531011);
+	return (g_seed>>16) & RAND_MAX;
+}
 
-static __m128i cur_seed = _mm_set1_epi32( int(time(NULL)) ); 	 
+static __m128i cur_seed = _mm_set1_epi32( int(time(NULL)) );
 static inline __m128i rand_dir()
 {
-	// static const __m128i mult = _mm_set_epi32( 214013, 17405, 214013, 69069 ); 
-	// static const __m128i gadd = _mm_set_epi32( 2531011, 10395331, 13737667, 1 ); 
-	static const __declspec( align(16) ) UINT mult[4] = { 214013, 17405, 214013, 0 }; 
-	static const __declspec( align(16) ) UINT gadd[4] = { 2531011, 10395331, 13737667, 0 }; 
+	// static const __m128i mult = _mm_set_epi32( 214013, 17405, 214013, 69069 );
+	// static const __m128i gadd = _mm_set_epi32( 2531011, 10395331, 13737667, 1 );
+	static const __declspec( align(16) ) UINT mult[4] = { 214013, 17405, 214013, 0 };
+	static const __declspec( align(16) ) UINT gadd[4] = { 2531011, 10395331, 13737667, 0 };
 	static const __declspec( align(16) ) UINT masklo[4] = { RAND_MAX, RAND_MAX, RAND_MAX, RAND_MAX };
-	
+
 	cur_seed = _mm_mullo_epi32( *((const __m128i *)mult), cur_seed );
 	cur_seed = _mm_add_epi32( *((const __m128i *)gadd), cur_seed );
 
@@ -386,24 +386,24 @@ static inline __m128i rand_dir()
 	const __m128i result = _mm_and_si128( resShift, *((const __m128i *)kOneVec) );
 
 	return result;
-} 
+}
 
 // Fast generation of floats between 0 and 1. It generates a float
-// whose exponent forces the value to be between 1 and 2, then it 
+// whose exponent forces the value to be between 1 and 2, then it
 // populates the mantissa with a random assortment of bits, and returns
 // the bytes interpreted as a float. This prevents two things: 1, a
 // division, and 2, a cast from an integer to a float.
 
 #define COMPILE_ASSERT(x) extern int __compile_assert_[(int)(x)];
 COMPILE_ASSERT(RAND_MAX == 0x7FFF)
-	 
-static inline float frand() { 
+
+static inline float frand() {
 	const WORD r = fastrand();
-	
+
 	// RAND_MAX is 0x7FFF, which offers 15 bits
 	// of precision. Therefore, we move the bits
-	// into the top of the 23 bit mantissa, and 
-	// repeat the most significant bits of r in 
+	// into the top of the 23 bit mantissa, and
+	// repeat the most significant bits of r in
 	// the least significant of the mantissa
 	const UINT m = (r << 8) | (r >> 7);
 	const UINT flt = (127 << 23) | m;
@@ -415,7 +415,7 @@ static const ALIGN_SSE UINT kNegOneVec[4] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF
 static const ALIGN_SSE UINT kFloatSignBit[4] = { 0x40000000, 0x40000000, 0x40000000, 0x40000000 };
 
 static void ChangePointForDirWithoutPbitChange(RGBAVectorSIMD &v, const __m128 &stepVec) {
-	
+
 	const __m128i dirBool = rand_dir();
 	const __m128i cmp = _mm_cmpeq_epi32( dirBool, *((const __m128i *)kZeroVector) );
 
@@ -433,7 +433,7 @@ static void ChangePointForDirWithPbitChange(RGBAVectorSIMD &v, int oldPbit, cons
 	const __m128i dirBool = rand_dir();
 	const __m128i cmpDir = _mm_cmpeq_epi32( dirBool, *((const __m128i *)kOneVec) );
 	const __m128i notCmpDir = _mm_xor_si128( cmpDir, *((const __m128i *)kNegOneVec) );
-	
+
 	const __m128i shouldDec = _mm_and_si128( cmpDir, cmpPBit );
 	const __m128i shouldInc = _mm_and_si128( notCmpDir, notCmpPBit );
 
@@ -459,7 +459,7 @@ void BC7CompressionModeSIMD::PickBestNeighboringEndpoints(const RGBAClusterSIMD 
 		if(pBitType == ePBitType_Shared)
 			nPbitCombo = (curPbitCombo + 1) % 2;
 		else {
-			// Not shared... p1 needs to change and p2 needs to change... which means that 
+			// Not shared... p1 needs to change and p2 needs to change... which means that
 			// combo 0 gets rotated to combo 3, combo 1 gets rotated to combo 2 and vice
 			// versa...
 			nPbitCombo = 3 - curPbitCombo;
@@ -490,7 +490,7 @@ bool BC7CompressionModeSIMD::AcceptNewEndpointError(float newError, float oldErr
 }
 
 double BC7CompressionModeSIMD::OptimizeEndpointsForCluster(const RGBAClusterSIMD &cluster, RGBAVectorSIMD &p1, RGBAVectorSIMD &p2, __m128i *bestIndices, int &bestPbitCombo) const {
-	
+
 	const int nBuckets = (1 << GetNumberOfBitsPerIndex());
 	const int nPbitCombos = GetNumPbitCombos();
 	__m128i qmask;
@@ -509,7 +509,7 @@ double BC7CompressionModeSIMD::OptimizeEndpointsForCluster(const RGBAClusterSIMD
 	precVec = _mm_sub_epi32( *((const __m128i *)kSevenVec), precVec );
 	precVec = _mm_slli_epi32( precVec, 23 );
 	precVec = _mm_or_si128( precVec, *((const __m128i *)kFloatSignBit) );
-	
+
 	//__m128 stepSzVec = _mm_set1_ps(1.0f);
 	//__m128 stepVec = _mm_mul_ps( stepSzVec, _mm_castsi128_ps( _mm_and_si128( precMask, precVec ) ) );
 	__m128 stepVec = _mm_castsi128_ps( _mm_and_si128( precMask, precVec ) );
@@ -552,7 +552,7 @@ double BC7CompressionModeSIMD::OptimizeEndpointsForCluster(const RGBAClusterSIMD
 }
 
 double BC7CompressionModeSIMD::CompressCluster(const RGBAClusterSIMD &cluster, RGBAVectorSIMD &p1, RGBAVectorSIMD &p2, __m128i *bestIndices, int &bestPbitCombo) const {
-		
+
 	// If all the points are the same in the cluster, then we need to figure out what the best
 	// approximation to this point is....
 	if(cluster.AllSamePoint()) {
@@ -563,10 +563,10 @@ double BC7CompressionModeSIMD::CompressCluster(const RGBAClusterSIMD &cluster, R
 		for(int i = 0; i < 4; i++) {
 			bestIndices[i] = _mm_set1_epi32(1);
 		}
-		
+
 		return bestErr;
 	}
-	
+
 	const int nBuckets = (1 << GetNumberOfBitsPerIndex());
 	const int nPbitCombos = GetNumPbitCombos();
 
@@ -584,7 +584,7 @@ double BC7CompressionModeSIMD::CompressCluster(const RGBAClusterSIMD &cluster, R
 	RGBAVectorSIMD pts[1 << 4]; // At most 4 bits per index.
 	float numPts[1<<4];
 	assert(nBuckets <= 1 << 4);
-	
+
 	p1 = avg + mindp * axis;
 	p2 = avg + maxdp * axis;
 
@@ -603,7 +603,7 @@ double BC7CompressionModeSIMD::CompressCluster(const RGBAClusterSIMD &cluster, R
 
 	bool fixed = false;
 	while(!fixed) {
-		
+
 		RGBAVectorSIMD newPts[1 << 4];
 
 		// Assign each of the existing points to one of the buckets...
@@ -627,7 +627,7 @@ double BC7CompressionModeSIMD::CompressCluster(const RGBAClusterSIMD &cluster, R
 
 		// Calculate new buckets based on centroids of clusters...
 		for(int i = 0; i < nBuckets; i++) {
-			
+
 			numPts[i] = 0.0f;
 			newPts[i] = RGBAVectorSIMD(0.0f);
 			for(int j = 0; j < cluster.GetNumPoints(); j++) {
@@ -674,7 +674,7 @@ double BC7CompressionModeSIMD::CompressCluster(const RGBAClusterSIMD &cluster, R
 		for(int i = 0; i < 4; i++) {
 			bestIndices[i] = _mm_set1_epi32(1);
 		}
-		  
+
 		return bestErr;
 	}
 
@@ -719,7 +719,7 @@ double BC7CompressionModeSIMD::CompressCluster(const RGBAClusterSIMD &cluster, R
 	return OptimizeEndpointsForCluster(cluster, p1, p2, bestIndices, bestPbitCombo);
 }
 
-double BC7CompressionModeSIMD::Compress(BitStream &stream, const int shapeIdx, const RGBAClusterSIMD *clusters) const {	
+double BC7CompressionModeSIMD::Compress(BitStream &stream, const int shapeIdx, const RGBAClusterSIMD *clusters) const {
 
 	const int kModeNumber = GetModeNumber();
 	const int nPartitionBits = GetNumberOfPartitionBits();
@@ -731,7 +731,7 @@ double BC7CompressionModeSIMD::Compress(BitStream &stream, const int shapeIdx, c
 	// Partition #
 	assert((((1 << nPartitionBits) - 1) & shapeIdx) == shapeIdx);
 	stream.WriteBits(shapeIdx, nPartitionBits);
-		
+
 	RGBAVectorSIMD p1[kMaxNumSubsets], p2[kMaxNumSubsets];
 	int bestIndices[kMaxNumSubsets][kMaxNumDataPoints] = {
 		{ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
@@ -748,7 +748,7 @@ double BC7CompressionModeSIMD::Compress(BitStream &stream, const int shapeIdx, c
 		totalErr += CompressCluster(clusters[cidx], p1[cidx], p2[cidx], (__m128i *)indices, bestPbitCombo[cidx]);
 
 		// !SPEED! We can precompute the subsets for each index based on the shape. This
-		// isn't the bottleneck for the compressor, but it could prove to be a little 
+		// isn't the bottleneck for the compressor, but it could prove to be a little
 		// faster...
 
 		// Map the indices to their proper position.
@@ -783,20 +783,20 @@ double BC7CompressionModeSIMD::Compress(BitStream &stream, const int shapeIdx, c
 	for(int i = 0; i < nSubsets; i++) {
 		switch(GetPBitType()) {
 			default:
-			case ePBitType_None: 
-				pixel1[i] = p1[i].ToPixel(qmask); 
-				pixel2[i] = p2[i].ToPixel(qmask); 
+			case ePBitType_None:
+				pixel1[i] = p1[i].ToPixel(qmask);
+				pixel2[i] = p2[i].ToPixel(qmask);
 			break;
 
-			case ePBitType_Shared: 
-			case ePBitType_NotShared: 
-				pixel1[i] = p1[i].ToPixel(qmask, GetPBitCombo(bestPbitCombo[i])[0]); 
-				pixel2[i] = p2[i].ToPixel(qmask, GetPBitCombo(bestPbitCombo[i])[1]); 
+			case ePBitType_Shared:
+			case ePBitType_NotShared:
+				pixel1[i] = p1[i].ToPixel(qmask, GetPBitCombo(bestPbitCombo[i])[0]);
+				pixel2[i] = p2[i].ToPixel(qmask, GetPBitCombo(bestPbitCombo[i])[1]);
 			break;
 		}
 	}
 
-	// If the anchor index does not have 0 in the leading bit, then 
+	// If the anchor index does not have 0 in the leading bit, then
 	// we need to swap EVERYTHING.
 	for(int sidx = 0; sidx < nSubsets; sidx++) {
 
@@ -944,7 +944,7 @@ namespace BC7C
 		// Alpha endpoints... are just the same.
 		stream.WriteBits(a, 8);
 		stream.WriteBits(a, 8);
-		
+
 		// Color indices are 1 for each pixel...
 		// Anchor index is 0, so 1 bit for the first pixel, then
 		// 01 for each following pixel giving the sequence of 31 bits:
@@ -952,7 +952,7 @@ namespace BC7C
 		stream.WriteBits(0xaaaaaaab, 31);
 
 		// Alpha indices...
-		stream.WriteBits(kWMValues[gWMVal = (gWMVal+1) % kNumWMVals], 31); 
+		stream.WriteBits(kWMValues[gWMVal = (gWMVal+1) % kNumWMVals], 31);
 	}
 
 	// Compress an image using BC7 compression. Use the inBuf parameter to point to an image in
@@ -1007,7 +1007,7 @@ namespace BC7C
 		BYTE tempBuf1[16];
 		BitStream tmpStream1(tempBuf1, 128, 0);
 		BC7CompressionModeSIMD compressor1(1, estimatedError);
-			
+
 		double bestError = compressor1.Compress(tmpStream1, shapeIdx, clusters);
 		memcpy(outBuf, tempBuf1, 16);
 		if(bestError == 0.0) {
@@ -1026,11 +1026,11 @@ namespace BC7C
 				return 0.0;
 			}
 		}
-		
+
 		// Mode 3 offers more precision for RGB data. Mode 7 is really only if we have alpha.
 		//BYTE tempBuf7[16];
 		//BitStream tmpStream7(tempBuf7, 128, 0);
-		//BC7CompressionModeSIMD compressor7(7, estimatedError);		
+		//BC7CompressionModeSIMD compressor7(7, estimatedError);
 		//if((error = compressor7.Compress(tmpStream7, shapeIdx, clusters)) < bestError) {
 		//	memcpy(outBuf, tempBuf7, 16);
 		//	return error;
@@ -1049,7 +1049,7 @@ namespace BC7C
 
 		BC7CompressionModeSIMD compressor0(0, estimatedError);
 		BC7CompressionModeSIMD compressor2(2, estimatedError);
-			
+
 		double error, bestError = (shapeIdx < 16)? compressor0.Compress(tmpStream0, shapeIdx, clusters) : DBL_MAX;
 		memcpy(outBuf, tempBuf0, 16);
 		if(bestError == 0.0) {
@@ -1065,7 +1065,7 @@ namespace BC7C
 	}
 
 	static void PopulateTwoClustersForShape(const RGBAClusterSIMD &points, int shapeIdx, RGBAClusterSIMD *clusters) {
-		const WORD shape = kShapeMask2[shapeIdx]; 
+		const WORD shape = kShapeMask2[shapeIdx];
 		for(int pt = 0; pt < kMaxNumDataPoints; pt++) {
 
 			const RGBAVectorSIMD &p = points.GetPoint(pt);
@@ -1125,13 +1125,13 @@ namespace BC7C
 
 	// Compress a single block.
 	void CompressBC7Block(const UINT *block, BYTE *outBuf) {
-		
+
 		// All a single color?
 		if(AllOneColor(block)) {
 			BitStream bStrm(outBuf, 128, 0);
 			CompressOptimalColorBC7(*((const UINT *)block), bStrm);
 			return;
-		}		
+		}
 
 		RGBAClusterSIMD blockCluster;
 		bool opaque = true;
@@ -1160,7 +1160,7 @@ namespace BC7C
 		int bestShapeIdx[2] = { -1, -1 };
 		RGBAClusterSIMD bestClusters[2][3];
 
-		for(int i = 0; i < kNumShapes2; i++) 
+		for(int i = 0; i < kNumShapes2; i++)
 		{
 			RGBAClusterSIMD clusters[2];
 			PopulateTwoClustersForShape(blockCluster, i, clusters);

@@ -31,7 +31,7 @@ static const int kPBits[4][2] = {
 	{ 1, 1 }
 };
 
-// Abstract class that outlines all of the different settings for BC7 compression modes 
+// Abstract class that outlines all of the different settings for BC7 compression modes
 // Note that at the moment, we only support modes 0-3, so we don't deal with alpha channels.
 class BC7CompressionModeSIMD {
 public:
@@ -88,11 +88,11 @@ protected:
 	EPBitType GetPBitType() const { return m_Attributes->pbitType; }
 
 	// !SPEED! Add this to the attributes lookup table
-	void GetQuantizationMask(__m128i &mask) const {	
+	void GetQuantizationMask(__m128i &mask) const {
 		const int maskSeed = 0x80000000;
 		mask = _mm_set_epi32(
-			(GetAlphaChannelPrecision() > 0)? (maskSeed >> (24 + GetAlphaChannelPrecision() - 1) & 0xFF) : 0xFF, 
-			(maskSeed >> (24 + GetBlueChannelPrecision() - 1) & 0xFF), 
+			(GetAlphaChannelPrecision() > 0)? (maskSeed >> (24 + GetAlphaChannelPrecision() - 1) & 0xFF) : 0xFF,
+			(maskSeed >> (24 + GetBlueChannelPrecision() - 1) & 0xFF),
 			(maskSeed >> (24 + GetGreenChannelPrecision() - 1) & 0xFF),
 			(maskSeed >> (24 + GetRedChannelPrecision() - 1) & 0xFF)
 		);
@@ -115,7 +115,7 @@ protected:
 			case ePBitType_None: return kPBits[0];
 		}
 	}
-	
+
 	double OptimizeEndpointsForCluster(const RGBAClusterSIMD &cluster, RGBAVectorSIMD &p1, RGBAVectorSIMD &p2, __m128i *bestIndices, int &bestPbitCombo) const;
 
 	struct VisitedState {
@@ -125,11 +125,11 @@ protected:
 	};
 
 	void PickBestNeighboringEndpoints(
-		const RGBAClusterSIMD &cluster, 
-		const RGBAVectorSIMD &p1, const RGBAVectorSIMD &p2, 
-		const int curPbitCombo, 
-		RGBAVectorSIMD &np1, RGBAVectorSIMD &np2, 
-		int &nPbitCombo, 
+		const RGBAClusterSIMD &cluster,
+		const RGBAVectorSIMD &p1, const RGBAVectorSIMD &p2,
+		const int curPbitCombo,
+		RGBAVectorSIMD &np1, RGBAVectorSIMD &np2,
+		int &nPbitCombo,
 		const __m128 &stepVec
 	) const;
 
