@@ -38,7 +38,7 @@
 	unsigned int prec = CountBitsInMask(mask);
 	const unsigned int step = 1 << (8 - prec);
 
-	assert(step-1 == BYTE(~mask));
+	assert(step-1 == uint8_t(~mask));
 
 	unsigned int lval = val & mask;
 	unsigned int hval = lval + step;
@@ -252,12 +252,12 @@ void RGBAClusterSIMD::AddPoint(const RGBAVectorSIMD &p, int idx) {
 	m_Max.vec = _mm_max_ps(m_Max.vec, p.vec);
 }
 
-float RGBAClusterSIMD::QuantizedError(const RGBAVectorSIMD &p1, const RGBAVectorSIMD &p2, const BYTE nBuckets, const __m128i &bitMask, const int pbits[2], __m128i *indices) const {
+float RGBAClusterSIMD::QuantizedError(const RGBAVectorSIMD &p1, const RGBAVectorSIMD &p2, const uint8_t nBuckets, const __m128i &bitMask, const int pbits[2], __m128i *indices) const {
 
 	// nBuckets should be a power of two.
 	assert(!(nBuckets & (nBuckets - 1)));
 
-	const BYTE indexPrec = 8-_mm_popcnt_u32(~(nBuckets - 1) & 0xFF);
+	const uint8_t indexPrec = 8-_mm_popcnt_u32(~(nBuckets - 1) & 0xFF);
 	assert(indexPrec >= 2 && indexPrec <= 4);
 
 	typedef __m128i tInterpPair[2];
@@ -308,7 +308,7 @@ float RGBAClusterSIMD::QuantizedError(const RGBAVectorSIMD &p1, const RGBAVector
 			// farther away from the reference point along the line). Hence we can early out here.
 			// However, quanitzation artifacts mean that this is not ALWAYS the case, so we do suffer
 			// about 0.01 RMS error.
-			if(!((BYTE *)(&cmp))[0])
+			if(!((uint8_t *)(&cmp))[0])
 				break;
 		}
 

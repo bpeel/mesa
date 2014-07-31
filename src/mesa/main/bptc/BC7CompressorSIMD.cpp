@@ -282,7 +282,7 @@ double BC7CompressionModeSIMD::CompressSingleColor(const RGBAVectorSIMD &p, RGBA
 
 		for(int ci = 0; ci < kNumColorChannels; ci++) {
 
-			const BYTE val = ((BYTE *)(&pixel))[4*ci];
+			const uint8_t val = ((uint8_t *)(&pixel))[4*ci];
 			int nBits = 0;
 			switch(ci) {
 				case 0: nBits = GetRedChannelPrecision(); break;
@@ -817,20 +817,20 @@ double BC7CompressionModeSIMD::Compress(BitStream &stream, const int shapeIdx, c
 	}
 
 	// Get the quantized values...
-	BYTE r1[kMaxNumSubsets], g1[kMaxNumSubsets], b1[kMaxNumSubsets], a1[kMaxNumSubsets];
-	BYTE r2[kMaxNumSubsets], g2[kMaxNumSubsets], b2[kMaxNumSubsets], a2[kMaxNumSubsets];
+	uint8_t r1[kMaxNumSubsets], g1[kMaxNumSubsets], b1[kMaxNumSubsets], a1[kMaxNumSubsets];
+	uint8_t r2[kMaxNumSubsets], g2[kMaxNumSubsets], b2[kMaxNumSubsets], a2[kMaxNumSubsets];
 	for(int i = 0; i < nSubsets; i++) {
-		r1[i] = ((BYTE *)(&(pixel1[i])))[0];
-		r2[i] = ((BYTE *)(&(pixel2[i])))[0];
+		r1[i] = ((uint8_t *)(&(pixel1[i])))[0];
+		r2[i] = ((uint8_t *)(&(pixel2[i])))[0];
 
-		g1[i] = ((BYTE *)(&(pixel1[i])))[4];
-		g2[i] = ((BYTE *)(&(pixel2[i])))[4];
+		g1[i] = ((uint8_t *)(&(pixel1[i])))[4];
+		g2[i] = ((uint8_t *)(&(pixel2[i])))[4];
 
-		b1[i] = ((BYTE *)(&(pixel1[i])))[8];
-		b2[i] = ((BYTE *)(&(pixel2[i])))[8];
+		b1[i] = ((uint8_t *)(&(pixel1[i])))[8];
+		b2[i] = ((uint8_t *)(&(pixel2[i])))[8];
 
-		a1[i] = ((BYTE *)(&(pixel1[i])))[12];
-		a2[i] = ((BYTE *)(&(pixel2[i])))[12];
+		a1[i] = ((uint8_t *)(&(pixel1[i])))[12];
+		a2[i] = ((uint8_t *)(&(pixel2[i])))[12];
 	}
 
 	// Write them out...
@@ -896,8 +896,8 @@ namespace BC7C
 	ErrorMetric GetErrorMetricEnum() { return gErrorMetric; }
 
 	// Function prototypes
-	static void ExtractBlock(const BYTE* inPtr, int width, unsigned int* colorBlock);
-	static void CompressBC7Block(const unsigned int *block, BYTE *outBuf);
+	static void ExtractBlock(const uint8_t* inPtr, int width, unsigned int* colorBlock);
+	static void CompressBC7Block(const unsigned int *block, uint8_t *outBuf);
 
 	// Returns true if the entire block is a single color.
 	static bool AllOneColor(const unsigned int block[16]) {
@@ -924,10 +924,10 @@ namespace BC7C
 		stream.WriteBits(1 << 5, 6); // Mode 5
 		stream.WriteBits(0, 2); // No rotation bits.
 
-		BYTE r = pixel & 0xFF;
-		BYTE g = (pixel >> 8) & 0xFF;
-		BYTE b = (pixel >> 16) & 0xFF;
-		BYTE a = (pixel >> 24) & 0xFF;
+		uint8_t r = pixel & 0xFF;
+		uint8_t g = (pixel >> 8) & 0xFF;
+		uint8_t b = (pixel >> 16) & 0xFF;
+		uint8_t a = (pixel >> 24) & 0xFF;
 
 		// Red endpoints
 		stream.WriteBits(Optimal7CompressBC7Mode5[r][0], 7);
@@ -959,7 +959,7 @@ namespace BC7C
 	// 4-byte RGBA format. The width and height parameters specify the size of the image in pixels.
 	// The buffer pointed to by outBuf should be large enough to store the compressed image. This
 	// implementation has an 4:1 compression ratio.
-	void CompressImageBC7SIMD(const BYTE* inBuf, BYTE* outBuf, int width, int height)
+	void CompressImageBC7SIMD(const uint8_t* inBuf, uint8_t* outBuf, int width, int height)
 	{
 		__declspec( align(16) ) unsigned int block[16];
 
@@ -981,7 +981,7 @@ namespace BC7C
 
 	// Extract a 4 by 4 block of pixels from inPtr and store it in colorBlock. The width parameter
 	// specifies the size of the image in pixels.
-	static void ExtractBlock(const BYTE* inPtr, int width, unsigned int* colorBlock)
+	static void ExtractBlock(const uint8_t* inPtr, int width, unsigned int* colorBlock)
 	{
 		// Compute the stride.
 		const int stride = width * 4;
@@ -1002,9 +1002,9 @@ namespace BC7C
 		_mm_store_si128((__m128i*)(colorBlock + 12), _mm_load_si128((__m128i*)inPtr));
 	}
 
-	static double CompressTwoClusters(int shapeIdx, const RGBAClusterSIMD *clusters, BYTE *outBuf, double estimatedError) {
+	static double CompressTwoClusters(int shapeIdx, const RGBAClusterSIMD *clusters, uint8_t *outBuf, double estimatedError) {
 
-		BYTE tempBuf1[16];
+		uint8_t tempBuf1[16];
 		BitStream tmpStream1(tempBuf1, 128, 0);
 		BC7CompressionModeSIMD compressor1(1, estimatedError);
 
@@ -1014,7 +1014,7 @@ namespace BC7C
 			return 0.0;
 		}
 
-		BYTE tempBuf3[16];
+		uint8_t tempBuf3[16];
 		BitStream tmpStream3(tempBuf3, 128, 0);
 		BC7CompressionModeSIMD compressor3(3, estimatedError);
 
@@ -1028,7 +1028,7 @@ namespace BC7C
 		}
 
 		// Mode 3 offers more precision for RGB data. Mode 7 is really only if we have alpha.
-		//BYTE tempBuf7[16];
+		//uint8_t tempBuf7[16];
 		//BitStream tmpStream7(tempBuf7, 128, 0);
 		//BC7CompressionModeSIMD compressor7(7, estimatedError);
 		//if((error = compressor7.Compress(tmpStream7, shapeIdx, clusters)) < bestError) {
@@ -1039,12 +1039,12 @@ namespace BC7C
 		return bestError;
 	}
 
-	static double CompressThreeClusters(int shapeIdx, const RGBAClusterSIMD *clusters, BYTE *outBuf, double estimatedError) {
+	static double CompressThreeClusters(int shapeIdx, const RGBAClusterSIMD *clusters, uint8_t *outBuf, double estimatedError) {
 
-		BYTE tempBuf0[16];
+		uint8_t tempBuf0[16];
 		BitStream tmpStream0(tempBuf0, 128, 0);
 
-		BYTE tempBuf2[16];
+		uint8_t tempBuf2[16];
 		BitStream tmpStream2(tempBuf2, 128, 0);
 
 		BC7CompressionModeSIMD compressor0(0, estimatedError);
@@ -1124,7 +1124,7 @@ namespace BC7C
 	}
 
 	// Compress a single block.
-	void CompressBC7Block(const unsigned int *block, BYTE *outBuf) {
+	void CompressBC7Block(const unsigned int *block, uint8_t *outBuf) {
 
 		// All a single color?
 		if(AllOneColor(block)) {
@@ -1214,8 +1214,8 @@ namespace BC7C
 
 		if(opaque) {
 
-			BYTE tempBuf1[16];
-			BYTE tempBuf2[16];
+			uint8_t tempBuf1[16];
+			uint8_t tempBuf2[16];
 
 			BitStream tempStream1 (tempBuf1, 128, 0);
 			BC7CompressionModeSIMD compressor(6, DBL_MAX);

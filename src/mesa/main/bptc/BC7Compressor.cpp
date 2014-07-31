@@ -241,8 +241,8 @@ void BC7CompressionMode::ClampEndpointsToGrid(RGBAVector &p1, RGBAVector &p2, in
 			qp2 = p2.ToPixel(qmask);
 		}
 
-		BYTE *pqp1 = (BYTE *)&qp1;
-		BYTE *pqp2 = (BYTE *)&qp2;
+		uint8_t *pqp1 = (uint8_t *)&qp1;
+		uint8_t *pqp2 = (uint8_t *)&qp2;
 
 		RGBAVector np1 = RGBAVector(float(pqp1[0]), float(pqp1[1]), float(pqp1[2]), float(pqp1[3]));
 		RGBAVector np2 = RGBAVector(float(pqp2[0]), float(pqp2[1]), float(pqp2[2]), float(pqp2[3]));
@@ -278,7 +278,7 @@ double BC7CompressionMode::CompressSingleColor(const RGBAVector &p, RGBAVector &
 
 		for(int ci = 0; ci < kNumColorChannels; ci++) {
 
-			const BYTE val = (pixel >> (ci * 8)) & 0xFF;
+			const uint8_t val = (pixel >> (ci * 8)) & 0xFF;
 			int nBits = ci == 3? GetAlphaChannelPrecision() : m_Attributes->colorChannelPrecision;
 
 			// If we don't handle this channel, then we don't need to
@@ -554,8 +554,8 @@ double BC7CompressionMode::OptimizeEndpointsForCluster(const RGBACluster &cluste
 		qp2 = p2.ToPixel(qmask);
 	}
 
-	BYTE *pqp1 = (BYTE *)&qp1;
-	BYTE *pqp2 = (BYTE *)&qp2;
+	uint8_t *pqp1 = (uint8_t *)&qp1;
+	uint8_t *pqp2 = (uint8_t *)&qp2;
 
 	p1 = RGBAVector(float(pqp1[0]), float(pqp1[1]), float(pqp1[2]), float(pqp1[3]));
 	p2 = RGBAVector(float(pqp2[0]), float(pqp2[1]), float(pqp2[2]), float(pqp2[3]));
@@ -693,11 +693,11 @@ double BC7CompressionMode::CompressCluster(const RGBACluster &cluster, RGBAVecto
 	// If they're the same, then we can get them exactly.
 	if(a1 == a2)
 	{
-		const BYTE step = 1 << (8-GetAlphaChannelPrecision());
-		const BYTE a1be = BYTE(a1);
-		const BYTE a2be = BYTE(a2);
-		const BYTE a1b = ::QuantizeChannel(a1be, (((char)0x80) >> (GetAlphaChannelPrecision() - 1)));
-		const BYTE a2b = ::QuantizeChannel(a2be, (((char)0x80) >> (GetAlphaChannelPrecision() - 1)));
+		const uint8_t step = 1 << (8-GetAlphaChannelPrecision());
+		const uint8_t a1be = uint8_t(a1);
+		const uint8_t a2be = uint8_t(a2);
+		const uint8_t a1b = ::QuantizeChannel(a1be, (((char)0x80) >> (GetAlphaChannelPrecision() - 1)));
+		const uint8_t a2b = ::QuantizeChannel(a2be, (((char)0x80) >> (GetAlphaChannelPrecision() - 1)));
 
 		// Mode 5 has 8 bits of precision for alpha.
 		if(GetModeNumber() == 5) {
@@ -735,7 +735,7 @@ double BC7CompressionMode::CompressCluster(const RGBACluster &cluster, RGBAVecto
 			unsigned int interp0 = (*interpVals)[alphaIndices[0] & 0xFF][0];
 			unsigned int interp1 = (*interpVals)[alphaIndices[0] & 0xFF][1];
 
-			const BYTE ip = (((unsigned int(a1) * interp0) + (unsigned int(a2) * interp1) + 32) >> 6) & 0xFF;
+			const uint8_t ip = (((unsigned int(a1) * interp0) + (unsigned int(a2) * interp1) + 32) >> 6) & 0xFF;
 			float pxError = weight * float((a1be > ip)? a1be - ip : ip - a1be);
 			pxError *= pxError;
 			alphaError = 16 * pxError;
@@ -841,13 +841,13 @@ double BC7CompressionMode::CompressCluster(const RGBACluster &cluster, RGBAVecto
 		a2 = min(255.0f, max(0.0f, a2));
 
 		// Quantize
-		const BYTE a1b = ::QuantizeChannel(BYTE(a1), (((char)0x80) >> (GetAlphaChannelPrecision() - 1)));
-		const BYTE a2b = ::QuantizeChannel(BYTE(a2), (((char)0x80) >> (GetAlphaChannelPrecision() - 1)));
+		const uint8_t a1b = ::QuantizeChannel(uint8_t(a1), (((char)0x80) >> (GetAlphaChannelPrecision() - 1)));
+		const uint8_t a2b = ::QuantizeChannel(uint8_t(a2), (((char)0x80) >> (GetAlphaChannelPrecision() - 1)));
 
 		// Compute error
 		for(int i = 0; i < kMaxNumDataPoints; i++) {
 
-			BYTE val = BYTE(alphaVals[i]);
+			uint8_t val = uint8_t(alphaVals[i]);
 
 			float minError = FLT_MAX;
 			int bestBucket = -1;
@@ -856,7 +856,7 @@ double BC7CompressionMode::CompressCluster(const RGBACluster &cluster, RGBAVecto
 				unsigned int interp0 = (*interpVals)[j][0];
 				unsigned int interp1 = (*interpVals)[j][1];
 
-				const BYTE ip = (((unsigned int(a1b) * interp0) + (unsigned int(a2b) * interp1) + 32) >> 6) & 0xFF;
+				const uint8_t ip = (((unsigned int(a1b) * interp0) + (unsigned int(a2b) * interp1) + 32) >> 6) & 0xFF;
 				float pxError = weight * float((val > ip)? val - ip : ip - val);
 				pxError *= pxError;
 
@@ -1192,9 +1192,9 @@ double BC7CompressionMode::Compress(BitStream &stream, const int shapeIdx, const
 		}
 
 		if(m_Attributes->hasRotation && bestAlphaIndices[anchorIdx] >> (nAlphaIndexBits - 1)) {
-			BYTE * bp1 = (BYTE *)(&pixel1[sidx]);
-			BYTE * bp2 = (BYTE *)(&pixel2[sidx]);
-			BYTE t = bp1[3]; bp1[3] = bp2[3]; bp2[3] = t;
+			uint8_t * bp1 = (uint8_t *)(&pixel1[sidx]);
+			uint8_t * bp2 = (uint8_t *)(&pixel2[sidx]);
+			uint8_t t = bp1[3]; bp1[3] = bp2[3]; bp2[3] = t;
 
 			int nAlphaIndexVals = 1 << nAlphaIndexBits;
 			for(int i = 0; i < 16; i++) {
@@ -1207,8 +1207,8 @@ double BC7CompressionMode::Compress(BitStream &stream, const int shapeIdx, const
 	}
 
 	// Get the quantized values...
-	BYTE r1[kMaxNumSubsets], g1[kMaxNumSubsets], b1[kMaxNumSubsets], a1[kMaxNumSubsets];
-	BYTE r2[kMaxNumSubsets], g2[kMaxNumSubsets], b2[kMaxNumSubsets], a2[kMaxNumSubsets];
+	uint8_t r1[kMaxNumSubsets], g1[kMaxNumSubsets], b1[kMaxNumSubsets], a1[kMaxNumSubsets];
+	uint8_t r2[kMaxNumSubsets], g2[kMaxNumSubsets], b2[kMaxNumSubsets], a2[kMaxNumSubsets];
 	for(int i = 0; i < nSubsets; i++) {
 		r1[i] = pixel1[i] & 0xFF;
 		r2[i] = pixel2[i] & 0xFF;
@@ -1311,8 +1311,8 @@ double BC7CompressionMode::Compress(BitStream &stream, const int shapeIdx, const
 namespace BC7C
 {
 	// Function prototypes
-	static void ExtractBlock(const BYTE* inPtr, int width, unsigned int* colorBlock);
-	static void CompressBC7Block(const unsigned int *block, BYTE *outBuf);
+	static void ExtractBlock(const uint8_t* inPtr, int width, unsigned int* colorBlock);
+	static void CompressBC7Block(const unsigned int *block, uint8_t *outBuf);
 
 	static int gQualityLevel = 50;
 	void SetQualityLevel(int q) {
@@ -1345,10 +1345,10 @@ namespace BC7C
 		stream.WriteBits(1 << 5, 6); // Mode 5
 		stream.WriteBits(0, 2); // No rotation bits.
 
-		BYTE r = pixel & 0xFF;
-		BYTE g = (pixel >> 8) & 0xFF;
-		BYTE b = (pixel >> 16) & 0xFF;
-		BYTE a = (pixel >> 24) & 0xFF;
+		uint8_t r = pixel & 0xFF;
+		uint8_t g = (pixel >> 8) & 0xFF;
+		uint8_t b = (pixel >> 16) & 0xFF;
+		uint8_t a = (pixel >> 24) & 0xFF;
 
 		// Red endpoints
 		stream.WriteBits(Optimal7CompressBC7Mode5[r][0], 7);
@@ -1383,7 +1383,7 @@ namespace BC7C
 	// 4-byte RGBA format. The width and height parameters specify the size of the image in pixels.
 	// The buffer pointed to by outBuf should be large enough to store the compressed image. This
 	// implementation has an 4:1 compression ratio.
-	void CompressImageBC7(const BYTE* inBuf, BYTE* outBuf, int width, int height)
+	void CompressImageBC7(const uint8_t* inBuf, uint8_t* outBuf, int width, int height)
 	{
 		unsigned int block[16];
 		BC7CompressionMode::ResetNumUses();
@@ -1405,7 +1405,7 @@ namespace BC7C
 
 	// Extract a 4 by 4 block of pixels from inPtr and store it in colorBlock. The width parameter
 	// specifies the size of the image in pixels.
-	static void ExtractBlock(const BYTE* inPtr, int width, unsigned int* colorBlock)
+	static void ExtractBlock(const uint8_t* inPtr, int width, unsigned int* colorBlock)
 	{
 		for(int j = 0; j < 4; j++)
 		{
@@ -1414,9 +1414,9 @@ namespace BC7C
 		}
 	}
 
-	static double CompressTwoClusters(int shapeIdx, const RGBACluster *clusters, BYTE *outBuf, bool opaque) {
+	static double CompressTwoClusters(int shapeIdx, const RGBACluster *clusters, uint8_t *outBuf, bool opaque) {
 
-		BYTE tempBuf1[16];
+		uint8_t tempBuf1[16];
 		BitStream tmpStream1(tempBuf1, 128, 0);
 		BC7CompressionMode compressor1(1, opaque);
 
@@ -1427,7 +1427,7 @@ namespace BC7C
 			return 0.0;
 		}
 
-		BYTE tempBuf3[16];
+		uint8_t tempBuf3[16];
 		BitStream tmpStream3(tempBuf3, 128, 0);
 		BC7CompressionMode compressor3(3, opaque);
 
@@ -1444,7 +1444,7 @@ namespace BC7C
 		// Mode 3 offers more precision for RGB data. Mode 7 is really only if we have alpha.
 		if(!opaque)
 		{
-			BYTE tempBuf7[16];
+			uint8_t tempBuf7[16];
 			BitStream tmpStream7(tempBuf7, 128, 0);
 			BC7CompressionMode compressor7(7, opaque);
 			if((error = compressor7.Compress(tmpStream7, shapeIdx, clusters)) < bestError) {
@@ -1457,12 +1457,12 @@ namespace BC7C
 		return bestError;
 	}
 
-	static double CompressThreeClusters(int shapeIdx, const RGBACluster *clusters, BYTE *outBuf, bool opaque) {
+	static double CompressThreeClusters(int shapeIdx, const RGBACluster *clusters, uint8_t *outBuf, bool opaque) {
 
-		BYTE tempBuf0[16];
+		uint8_t tempBuf0[16];
 		BitStream tmpStream0(tempBuf0, 128, 0);
 
-		BYTE tempBuf2[16];
+		uint8_t tempBuf2[16];
 		BitStream tmpStream2(tempBuf2, 128, 0);
 
 		BC7CompressionMode compressor0(0, opaque);
@@ -1546,7 +1546,7 @@ namespace BC7C
 	}
 
 	// Compress a single block.
-	static void CompressBC7Block(const unsigned int *block, BYTE *outBuf) {
+	static void CompressBC7Block(const unsigned int *block, uint8_t *outBuf) {
 
 		// All a single color?
 		if(AllOneColor(block)) {
@@ -1639,7 +1639,7 @@ namespace BC7C
 			}
 		}
 
-		BYTE tempBuf1[16], tempBuf2[16];
+		uint8_t tempBuf1[16], tempBuf2[16];
 
 		BitStream tempStream1 (tempBuf1, 128, 0);
 		BC7CompressionMode compressor(6, opaque);
@@ -1702,7 +1702,7 @@ namespace BC7C
 		memcpy(outBuf, tempBuf1, 16);
 	}
 
-	static void DecompressBC7Block(const BYTE block[16], unsigned int outBuf[16]) {
+	static void DecompressBC7Block(const uint8_t block[16], unsigned int outBuf[16]) {
 
 		BitStreamReadOnly strm(block);
 
@@ -1856,7 +1856,7 @@ namespace BC7C
 				unsigned int i0 = kBC7InterpolationValues[nBitsPerColor - 1][colorIndices[i]][0];
 				unsigned int i1 = kBC7InterpolationValues[nBitsPerColor - 1][colorIndices[i]][1];
 
-				const BYTE ip = (((unsigned int(eps[subset][0][ch]) * i0) + (unsigned int(eps[subset][1][ch]) * i1) + 32) >> 6) & 0xFF;
+				const uint8_t ip = (((unsigned int(eps[subset][0][ch]) * i0) + (unsigned int(eps[subset][1][ch]) * i1) + 32) >> 6) & 0xFF;
 				pixel |= ip << (8*ch);
 			}
 
@@ -1864,7 +1864,7 @@ namespace BC7C
 				unsigned int i0 = kBC7InterpolationValues[nBitsPerAlpha - 1][alphaIndices[i]][0];
 				unsigned int i1 = kBC7InterpolationValues[nBitsPerAlpha - 1][alphaIndices[i]][1];
 
-				const BYTE ip = (((unsigned int(eps[subset][0][3]) * i0) + (unsigned int(eps[subset][1][3]) * i1) + 32) >> 6) & 0xFF;
+				const uint8_t ip = (((unsigned int(eps[subset][0][3]) * i0) + (unsigned int(eps[subset][1][3]) * i1) + 32) >> 6) & 0xFF;
 				pixel |= ip << 24;
 			}
 			else {
@@ -1872,7 +1872,7 @@ namespace BC7C
 			}
 
 			// Swap colors if necessary...
-			BYTE *pb = (BYTE *)&pixel;
+			uint8_t *pb = (uint8_t *)&pixel;
 			switch(rotMode) {
 				default:
 				case 0:
@@ -1895,7 +1895,7 @@ namespace BC7C
 	}
 
 	// Convert the image from a BC7 buffer to a RGBA8 buffer
-	void DecompressImageBC7(const BYTE *inBuf, BYTE* outBuf, int width, int height) {
+	void DecompressImageBC7(const uint8_t *inBuf, uint8_t* outBuf, int width, int height) {
 
 		int blockIdx = 0;
 		for(int j = 0; j < height; j += 4, outBuf += width * 3 * 4)

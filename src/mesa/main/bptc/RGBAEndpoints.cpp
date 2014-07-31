@@ -49,7 +49,7 @@ static const float kFloatConversion[256] = {
 // Static helper functions
 //
 ///////////////////////////////////////////////////////////////////////////////
-static inline unsigned int CountBitsInMask(BYTE n) {
+static inline unsigned int CountBitsInMask(uint8_t n) {
 
 #if _WIN64
 	if(!n) return 0; // no bits set
@@ -81,7 +81,7 @@ static inline void clamp(ty &x, const ty &min, const ty &max) {
 // absolute distance. It turns out the compiler does a much
 // better job of optimizing this than we can, since we can't
 // translate the values to/from registers
-static __forceinline BYTE sad(BYTE a, BYTE b) {
+static __forceinline uint8_t sad(uint8_t a, uint8_t b) {
 #if 0
 	__asm
 	{
@@ -110,7 +110,7 @@ done:
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-BYTE QuantizeChannel(const BYTE val, const BYTE mask, const int pBit) {
+uint8_t QuantizeChannel(const uint8_t val, const uint8_t mask, const int pBit) {
 
 	// If the mask is all the bits, then we can just return the value.
 	if(mask == 0xFF) {
@@ -120,7 +120,7 @@ BYTE QuantizeChannel(const BYTE val, const BYTE mask, const int pBit) {
 	unsigned int prec = CountBitsInMask(mask);
 	const unsigned int step = 1 << (8 - prec);
 
-	assert(step-1 == BYTE(~mask));
+	assert(step-1 == uint8_t(~mask));
 
 	unsigned int lval = val & mask;
 	unsigned int hval = lval + step;
@@ -147,9 +147,9 @@ BYTE QuantizeChannel(const BYTE val, const BYTE mask, const int pBit) {
 
 unsigned int RGBAVector::ToPixel(const unsigned int channelMask, const int pBit) const {
 	unsigned int ret = 0;
-	BYTE *pRet = (BYTE *)&ret;
+	uint8_t *pRet = (uint8_t *)&ret;
 
-	const BYTE *channelMaskBytes = (const BYTE *)&channelMask;
+	const uint8_t *channelMaskBytes = (const uint8_t *)&channelMask;
 
 	pRet[0] = QuantizeChannel(unsigned int(r + 0.5) & 0xFF, channelMaskBytes[0], pBit);
 	pRet[1] = QuantizeChannel(unsigned int(g + 0.5) & 0xFF, channelMaskBytes[1], pBit);
@@ -289,12 +289,12 @@ void RGBACluster::GetPrincipalAxis(RGBADir &axis) {
 	GetPrincipalAxis(axis);
 }
 
-double RGBACluster::QuantizedError(const RGBAVector &p1, const RGBAVector &p2, BYTE nBuckets, unsigned int bitMask, const RGBAVector &errorMetricVec, const int pbits[2], int *indices) const {
+double RGBACluster::QuantizedError(const RGBAVector &p1, const RGBAVector &p2, uint8_t nBuckets, unsigned int bitMask, const RGBAVector &errorMetricVec, const int pbits[2], int *indices) const {
 
 	// nBuckets should be a power of two.
 	assert(nBuckets == 3 || !(nBuckets & (nBuckets - 1)));
 
-	const BYTE indexPrec = (nBuckets == 3)? 3 : 8-CountBitsInMask(~(nBuckets - 1));
+	const uint8_t indexPrec = (nBuckets == 3)? 3 : 8-CountBitsInMask(~(nBuckets - 1));
 
 	typedef unsigned int tInterpPair[2];
 	typedef tInterpPair tInterpLevel[16];
@@ -312,14 +312,14 @@ double RGBACluster::QuantizedError(const RGBAVector &p1, const RGBAVector &p2, B
 		qp2 = p2.ToPixel(bitMask);
 	}
 
-	BYTE *pqp1 = (BYTE *)&qp1;
-	BYTE *pqp2 = (BYTE *)&qp2;
+	uint8_t *pqp1 = (uint8_t *)&qp1;
+	uint8_t *pqp2 = (uint8_t *)&qp2;
 
 	float totalError = 0.0;
 	for(int i = 0; i < m_NumPoints; i++) {
 
 		const unsigned int pixel = m_DataPoints[i].ToPixel();
-		const BYTE *pb = (const BYTE *)(&pixel);
+		const uint8_t *pb = (const uint8_t *)(&pixel);
 
 		float minError = FLT_MAX;
 		int bestBucket = -1;
@@ -330,8 +330,8 @@ double RGBACluster::QuantizedError(const RGBAVector &p1, const RGBAVector &p2, B
 
 			RGBAVector errorVec (0.0f);
 			for(int k = 0; k < kNumColorChannels; k++) {
-				const BYTE ip = (((unsigned int(pqp1[k]) * interp0) + (unsigned int(pqp2[k]) * interp1) + 32) >> 6) & 0xFF;
-				const BYTE dist = sad(pb[k], ip);
+				const uint8_t ip = (((unsigned int(pqp1[k]) * interp0) + (unsigned int(pqp2[k]) * interp1) + 32) >> 6) & 0xFF;
+				const uint8_t dist = sad(pb[k], ip);
 				errorVec.c[k] = kFloatConversion[dist];
 			}
 

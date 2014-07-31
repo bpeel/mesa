@@ -20,6 +20,7 @@
 
 #include <cmath>
 #include <cfloat>
+#include <stdint.h>
 
 static const int kNumColorChannels = 4;
 static const int kMaxNumDataPoints = 16;
@@ -321,7 +322,7 @@ public:
 	}
 
 	// Returns the error if we were to quantize the colors right now with the given number of buckets and bit mask.
-	double QuantizedError(const RGBAVector &p1, const RGBAVector &p2, BYTE nBuckets, unsigned int bitMask, const RGBAVector &errorMetricVec, const int pbits[2] = NULL, int *indices = NULL) const;
+	double QuantizedError(const RGBAVector &p1, const RGBAVector &p2, uint8_t nBuckets, unsigned int bitMask, const RGBAVector &errorMetricVec, const int pbits[2] = NULL, int *indices = NULL) const;
 
 	// Returns the principal axis for this point cluster.
 	void GetPrincipalAxis(RGBADir &axis);
@@ -346,7 +347,7 @@ private:
 	bool m_PrincipalAxisCached;
 };
 
-extern BYTE QuantizeChannel(const BYTE val, const BYTE mask, const int pBit = -1);
+extern uint8_t QuantizeChannel(const uint8_t val, const uint8_t mask, const int pBit = -1);
 extern void GetPrincipalAxis(int nPts, const RGBAVector *pts, RGBADir &axis);
 
 #endif //__RGBA_ENDPOINTS_H__

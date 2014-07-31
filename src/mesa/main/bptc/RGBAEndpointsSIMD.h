@@ -349,7 +349,7 @@ public:
 	}
 
 	// Returns the error if we were to quantize the colors right now with the given number of buckets and bit mask.
-	float QuantizedError(const RGBAVectorSIMD &p1, const RGBAVectorSIMD &p2, const BYTE nBuckets, const __m128i &bitMask, const int pbits[2] = NULL, __m128i *indices = NULL) const;
+	float QuantizedError(const RGBAVectorSIMD &p1, const RGBAVectorSIMD &p2, const uint8_t nBuckets, const __m128i &bitMask, const int pbits[2] = NULL, __m128i *indices = NULL) const;
 
 	bool AllSamePoint() const { return m_Max == m_Min; }
 	int GetPointBitString() const { return m_PointBitString; }
