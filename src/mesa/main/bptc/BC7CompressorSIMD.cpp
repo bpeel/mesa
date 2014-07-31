@@ -24,7 +24,7 @@
 #define ALIGN_SSE __declspec( align(16) )
 
 static const unsigned int kNumShapes2 = 64;
-static const WORD kShapeMask2[kNumShapes2] = {
+static const uint16_t kShapeMask2[kNumShapes2] = {
 	0xcccc, 0x8888, 0xeeee, 0xecc8, 0xc880, 0xfeec, 0xfec8, 0xec80,
 	0xc800, 0xffec, 0xfe80, 0xe800, 0xffe8, 0xff00, 0xfff0, 0xf000,
 	0xf710, 0x008e, 0x7100, 0x08ce, 0x008c, 0x7310, 0x3100, 0x8cce,
@@ -47,7 +47,7 @@ static const int kAnchorIdx2[kNumShapes2] = {
 };
 
 static const unsigned int kNumShapes3 = 64;
-static const WORD kShapeMask3[kNumShapes3][2] = {
+static const uint16_t kShapeMask3[kNumShapes3][2] = {
 	{ 0xfecc, 0xf600 }, { 0xffc8, 0x7300 }, { 0xff90, 0x3310 }, { 0xecce, 0x00ce }, { 0xff00, 0xcc00 }, { 0xcccc, 0xcc00 }, { 0xffcc, 0x00cc }, { 0xffcc, 0x3300 },
 	{ 0xff00, 0xf000 }, { 0xfff0, 0xf000 }, { 0xfff0, 0xff00 }, { 0xcccc, 0x8888 }, { 0xeeee, 0x8888 }, { 0xeeee, 0xcccc }, { 0xffec, 0xec80 }, { 0x739c, 0x7310 },
 	{ 0xfec8, 0xc800 }, { 0x39ce, 0x3100 }, { 0xfff0, 0xccc0 }, { 0xfccc, 0x0ccc }, { 0xeeee, 0xee00 }, { 0xff88, 0x7700 }, { 0xeec0, 0xcc00 }, { 0x7730, 0x3300 },
@@ -398,7 +398,7 @@ static inline __m128i rand_dir()
 COMPILE_ASSERT(RAND_MAX == 0x7FFF)
 
 static inline float frand() {
-	const WORD r = fastrand();
+	const uint16_t r = fastrand();
 
 	// RAND_MAX is 0x7FFF, which offers 15 bits
 	// of precision. Therefore, we move the bits
@@ -1065,7 +1065,7 @@ namespace BC7C
 	}
 
 	static void PopulateTwoClustersForShape(const RGBAClusterSIMD &points, int shapeIdx, RGBAClusterSIMD *clusters) {
-		const WORD shape = kShapeMask2[shapeIdx];
+		const uint16_t shape = kShapeMask2[shapeIdx];
 		for(int pt = 0; pt < kMaxNumDataPoints; pt++) {
 
 			const RGBAVectorSIMD &p = points.GetPoint(pt);
