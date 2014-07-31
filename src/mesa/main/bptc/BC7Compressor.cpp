@@ -20,6 +20,7 @@
 #include "BCLookupTables.h"
 #include "RGBAEndpoints.h"
 #include "BitStream.h"
+#include "main/macros.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -188,7 +189,7 @@ static int GetPointMaskForSubset(int subset, const int shapeIdx, const int nSubs
 
 template <typename T>
 static void insert(T* buf, int bufSz, T newVal, int idx = 0) {
-	int safeIdx = min(bufSz-1, max(idx, 0));
+	int safeIdx = CLAMP(idx, idx, bufSz-1);
 	for(int i = bufSz - 1; i > safeIdx; i--) {
 		buf[i] = buf[i-1];
 	}
