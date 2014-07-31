@@ -18,6 +18,7 @@
 #include "RGBAEndpoints.h"
 #include "BC7CompressorDLL.h"
 #include "BC7CompressionMode.h"
+#include "main/imports.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -50,27 +51,7 @@ static const float kFloatConversion[256] = {
 //
 ///////////////////////////////////////////////////////////////////////////////
 static inline unsigned int CountBitsInMask(uint8_t n) {
-
-#if _WIN64
-	if(!n) return 0; // no bits set
-	if(!(n & (n-1))) return 1; // power of two
-
-	unsigned int c;
-	for(c = 0; n; c++) {
-		n &= n - 1;
-	}
-	return c;
-#else
-
-	__asm
-	{
-		mov eax, 8
-		movzx ecx, n
-		bsf ecx, ecx
-		sub eax, ecx
-	}
-
-#endif
+	return _mesa_bitcount(n);
 }
 
 template <typename ty>
