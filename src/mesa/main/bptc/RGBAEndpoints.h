@@ -281,18 +281,18 @@ public:
 
 	RGBACluster() :
 	  m_NumPoints(0), m_Total(0),
-	  m_PointBitString(0),
 	  m_Min(FLT_MAX),
 	  m_Max(-FLT_MAX),
+	  m_PointBitString(0),
 	  m_PrincipalAxisCached(false)
 	{ }
 
 	RGBACluster(const RGBACluster &c) :
 		m_NumPoints(c.m_NumPoints),
 		m_Total(c.m_Total),
-		m_PointBitString(c.m_PointBitString),
 		m_Min(c.m_Min),
 		m_Max(c.m_Max),
+		m_PointBitString(c.m_PointBitString),
 		m_PrincipalAxisCached(false)
 	{
 		memcpy(this->m_DataPoints, c.m_DataPoints, m_NumPoints * sizeof(RGBAVector));
@@ -302,8 +302,8 @@ public:
 	RGBACluster(const RGBAVector &p) :
 		m_NumPoints(1),
 		m_Total(p),
-		m_PointBitString(0),
 		m_Min(p), m_Max(p),
+		m_PointBitString(0),
 		m_PrincipalAxisCached(false)
 	{
 		m_DataPoints[0] = p;

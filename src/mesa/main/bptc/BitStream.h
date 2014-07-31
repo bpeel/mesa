@@ -22,10 +22,10 @@ class BitStream {
 public:
 	BitStream(unsigned char *ptr, int nBits, int start_offset) :
 	  m_BitsWritten(0),
-	  m_NumBits(nBits),
-	  m_NumBytes((nBits + start_offset + 7) >> 3),
-      m_CurByte(ptr),
 	  m_NextBit(start_offset % 8),
+	  m_NumBytes((nBits + start_offset + 7) >> 3),
+	  m_NumBits(nBits),
+	  m_CurByte(ptr),
 	  done(false)
 	{ }
 
@@ -79,8 +79,8 @@ class BitStreamReadOnly {
 public:
 	BitStreamReadOnly(const unsigned char *ptr) :
 	  m_BitsRead(0),
-	  m_CurByte(ptr),
-	  m_NextBit(0)
+	  m_NextBit(0),
+	  m_CurByte(ptr)
 	{ }
 
 	int GetBitsRead() const { return m_BitsRead; }

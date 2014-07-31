@@ -40,7 +40,7 @@ public:
 	static const int kMaxNumSubsets = 3;
 	static const int kNumModes = 8;
 
-	explicit BC7CompressionMode(int mode, bool opaque = true) : m_IsOpaque(opaque), m_Attributes(&(kModeAttributes[mode])), m_RotateMode(0), m_IndexMode(0) { }
+	explicit BC7CompressionMode(int mode, bool opaque = true) : m_Attributes(&(kModeAttributes[mode])), m_RotateMode(0), m_IndexMode(0), m_IsOpaque(opaque) { }
 	~BC7CompressionMode() { }
 
 	static int NumUses[8];
