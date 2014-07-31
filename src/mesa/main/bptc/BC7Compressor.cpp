@@ -334,7 +334,7 @@ double BC7CompressionMode::CompressSingleColor(const RGBAVector &p, RGBAVector &
 				}
 			}
 
-			dist = max(bestChannelDist, dist);
+			dist = MAX2(bestChannelDist, dist);
 		}
 
 		if(dist < bestDist) {
@@ -484,7 +484,7 @@ void BC7CompressionMode::PickBestNeighboringEndpoints(const RGBACluster &cluster
 				ChangePointForDirWithoutPbitChange(np, fastrand() % 16, step);
 
 			for(int i = 0; i < kNumColorChannels; i++) {
-				np.c[i] = min(max(np.c[i], 0.0f), 255.0f);
+				np.c[i] = MIN2(MAX2(np.c[i], 0.0f), 255.0f);
 			}
 		}
 
@@ -671,8 +671,8 @@ double BC7CompressionMode::CompressCluster(const RGBACluster &cluster, RGBAVecto
 		alphaVals[i] = v.a;
 		v.a = 255.0f;
 
-		alphaMin = min(alphaVals[i], alphaMin);
-		alphaMax = max(alphaVals[i], alphaMax);
+		alphaMin = MIN2(alphaVals[i], alphaMin);
+		alphaMax = MAX2(alphaVals[i], alphaMax);
 
 		rgbCluster.AddPoint(v);
 	}
@@ -838,8 +838,8 @@ double BC7CompressionMode::CompressCluster(const RGBACluster &cluster, RGBAVecto
 		a2 = f * (bx * asq - ax * ab);
 
 		// Clamp
-		a1 = min(255.0f, max(0.0f, a1));
-		a2 = min(255.0f, max(0.0f, a2));
+		a1 = MIN2(255.0f, MAX2(0.0f, a1));
+		a2 = MIN2(255.0f, MAX2(0.0f, a2));
 
 		// Quantize
 		const uint8_t a1b = ::QuantizeChannel(uint8_t(a1), (((char)0x80) >> (GetAlphaChannelPrecision() - 1)));
@@ -1317,7 +1317,7 @@ namespace BC7C
 
 	static int gQualityLevel = 50;
 	void SetQualityLevel(int q) {
-		gQualityLevel = max(0, q);
+		gQualityLevel = MAX2(0, q);
 	}
 	int GetQualityLevel() { return gQualityLevel; }
 
@@ -1388,7 +1388,7 @@ namespace BC7C
 	{
 		unsigned int block[16];
 		BC7CompressionMode::ResetNumUses();
-		BC7CompressionMode::MaxAnnealingIterations = min(BC7CompressionMode::kMaxAnnealingIterations, GetQualityLevel());
+		BC7CompressionMode::MaxAnnealingIterations = MIN2(BC7CompressionMode::kMaxAnnealingIterations, GetQualityLevel());
 
 		for(int j = 0; j < height; j += 4, inBuf += width * 4 * 4)
 		{

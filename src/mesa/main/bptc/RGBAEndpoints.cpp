@@ -19,6 +19,7 @@
 #include "BC7CompressorDLL.h"
 #include "BC7CompressionMode.h"
 #include "main/imports.h"
+#include "main/macros.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -251,8 +252,8 @@ void RGBACluster::AddPoint(const RGBAVector &p) {
 	m_PointBitString |= 1 << p.GetIdx();
 
 	for(int i = 0; i < kNumColorChannels; i++) {
-		m_Min.c[i] = min(p.c[i], m_Min.c[i]);
-		m_Max.c[i] = max(p.c[i], m_Max.c[i]);
+		m_Min.c[i] = MIN2(p.c[i], m_Min.c[i]);
+		m_Max.c[i] = MAX2(p.c[i], m_Max.c[i]);
 	}
 }
 
@@ -377,7 +378,7 @@ void GetPrincipalAxis(int nPts, const RGBAVector *pts, RGBADir &axis) {
 		toPts[i] = pts[i] - avg;
 
 		for(int j = 0; j < kNumColorChannels; j++) {
-			toPtsMax.c[j] = max(toPtsMax.c[j], toPts[i].c[j]);
+			toPtsMax.c[j] = MAX2(toPtsMax.c[j], toPts[i].c[j]);
 		}
 	}
 

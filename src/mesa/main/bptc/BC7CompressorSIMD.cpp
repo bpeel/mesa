@@ -343,7 +343,7 @@ double BC7CompressionModeSIMD::CompressSingleColor(const RGBAVectorSIMD &p, RGBA
 				}
 			}
 
-			dist = max(bestChannelDist, dist);
+			dist = MAX2(bestChannelDist, dist);
 		}
 
 		if(dist < bestDist) {
