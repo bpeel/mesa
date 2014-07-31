@@ -354,7 +354,7 @@ double BC7CompressionMode::CompressSingleColor(const RGBAVector &p, RGBAVector &
 
 // Fast random number generator. See more information at
 // http://software.intel.com/en-us/articles/fast-random-number-generator-on-the-intel-pentiumr-4-processor/
-static unsigned int g_seed = unsigned int(time(NULL));
+static unsigned int g_seed = (unsigned int) time(NULL);
 static inline unsigned int fastrand() {
 	g_seed = (214013 * g_seed + 2531011);
 	return (g_seed>>16) & RAND_MAX;
