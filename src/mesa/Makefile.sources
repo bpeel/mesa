@@ -7,6 +7,11 @@
 MAIN_ES_FILES = \
 	$(SRCDIR)main/es1_conversion.c
 
+# this is part of MAIN_FILES
+MAIN_BPTC_FILES = \
+	$(SRCDIR)main/bptc/BC7Compressor.cpp \
+	$(SRCDIR)main/bptc/RGBAEndpoints.cpp
+
 MAIN_FILES = \
 	$(SRCDIR)main/api_arrayelt.c \
 	$(BUILDDIR)main/api_exec.c \
@@ -120,7 +125,8 @@ MAIN_FILES = \
 	$(SRCDIR)main/viewport.c \
 	$(SRCDIR)main/vtxfmt.c \
 	$(BUILDDIR)main/enums.c \
-	$(MAIN_ES_FILES)
+	$(MAIN_ES_FILES) \
+	$(MAIN_BPTC_FILES)
 
 MATH_FILES = \
 	$(SRCDIR)math/m_debug_clip.c \
