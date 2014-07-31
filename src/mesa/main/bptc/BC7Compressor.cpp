@@ -21,6 +21,7 @@
 #include "RGBAEndpoints.h"
 #include "BitStream.h"
 #include "main/macros.h"
+#include "bc7compressor.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -1867,4 +1868,10 @@ namespace BC7C
 			}
 		}
 	}
+}
+
+extern "C" void
+_mesa_bc7_compress_block(const uint8_t *block, uint8_t *outBuf)
+{
+   BC7C::CompressBC7Block((const unsigned int *) block, outBuf);
 }
