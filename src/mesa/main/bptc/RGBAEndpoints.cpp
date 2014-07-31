@@ -264,7 +264,6 @@ void RGBACluster::GetPrincipalAxis(RGBADir &axis) {
 		return;
 	}
 
-	RGBAVector avg = m_Total / float(m_NumPoints);
 	::GetPrincipalAxis(m_NumPoints, m_DataPoints, m_PrincipalAxis);
 	m_PrincipalAxisCached = true;
 
