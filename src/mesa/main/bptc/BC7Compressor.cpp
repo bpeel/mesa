@@ -736,7 +736,7 @@ double BC7CompressionMode::CompressCluster(const RGBACluster &cluster, RGBAVecto
 			unsigned int interp0 = (*interpVals)[alphaIndices[0] & 0xFF][0];
 			unsigned int interp1 = (*interpVals)[alphaIndices[0] & 0xFF][1];
 
-			const uint8_t ip = (((unsigned int(a1) * interp0) + (unsigned int(a2) * interp1) + 32) >> 6) & 0xFF;
+			const uint8_t ip = ((((unsigned int)(a1) * interp0) + ((unsigned int)(a2) * interp1) + 32) >> 6) & 0xFF;
 			float pxError = weight * float((a1be > ip)? a1be - ip : ip - a1be);
 			pxError *= pxError;
 			alphaError = 16 * pxError;
@@ -857,7 +857,7 @@ double BC7CompressionMode::CompressCluster(const RGBACluster &cluster, RGBAVecto
 				unsigned int interp0 = (*interpVals)[j][0];
 				unsigned int interp1 = (*interpVals)[j][1];
 
-				const uint8_t ip = (((unsigned int(a1b) * interp0) + (unsigned int(a2b) * interp1) + 32) >> 6) & 0xFF;
+				const uint8_t ip = ((((unsigned int)(a1b) * interp0) + ((unsigned int)(a2b) * interp1) + 32) >> 6) & 0xFF;
 				float pxError = weight * float((val > ip)? val - ip : ip - val);
 				pxError *= pxError;
 
@@ -1857,7 +1857,7 @@ namespace BC7C
 				unsigned int i0 = kBC7InterpolationValues[nBitsPerColor - 1][colorIndices[i]][0];
 				unsigned int i1 = kBC7InterpolationValues[nBitsPerColor - 1][colorIndices[i]][1];
 
-				const uint8_t ip = (((unsigned int(eps[subset][0][ch]) * i0) + (unsigned int(eps[subset][1][ch]) * i1) + 32) >> 6) & 0xFF;
+				const uint8_t ip = ((((unsigned int)(eps[subset][0][ch]) * i0) + ((unsigned int)(eps[subset][1][ch]) * i1) + 32) >> 6) & 0xFF;
 				pixel |= ip << (8*ch);
 			}
 
@@ -1865,7 +1865,7 @@ namespace BC7C
 				unsigned int i0 = kBC7InterpolationValues[nBitsPerAlpha - 1][alphaIndices[i]][0];
 				unsigned int i1 = kBC7InterpolationValues[nBitsPerAlpha - 1][alphaIndices[i]][1];
 
-				const uint8_t ip = (((unsigned int(eps[subset][0][3]) * i0) + (unsigned int(eps[subset][1][3]) * i1) + 32) >> 6) & 0xFF;
+				const uint8_t ip = ((((unsigned int)(eps[subset][0][3]) * i0) + ((unsigned int)(eps[subset][1][3]) * i1) + 32) >> 6) & 0xFF;
 				pixel |= ip << 24;
 			}
 			else {

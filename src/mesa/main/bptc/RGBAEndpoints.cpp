@@ -311,7 +311,7 @@ double RGBACluster::QuantizedError(const RGBAVector &p1, const RGBAVector &p2, u
 
 			RGBAVector errorVec (0.0f);
 			for(int k = 0; k < kNumColorChannels; k++) {
-				const uint8_t ip = (((unsigned int(pqp1[k]) * interp0) + (unsigned int(pqp2[k]) * interp1) + 32) >> 6) & 0xFF;
+				const uint8_t ip = ((((unsigned int)(pqp1[k]) * interp0) + ((unsigned int)(pqp2[k]) * interp1) + 32) >> 6) & 0xFF;
 				const uint8_t dist = sad(pb[k], ip);
 				errorVec.c[k] = kFloatConversion[dist];
 			}
