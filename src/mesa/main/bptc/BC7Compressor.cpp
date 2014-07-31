@@ -1269,6 +1269,17 @@ namespace BC7C
 	static void ExtractBlock(const uint8_t* inPtr, int width, unsigned int* colorBlock);
 	static void CompressBC7Block(const unsigned int *block, uint8_t *outBuf);
 
+	static ErrorMetric gErrorMetric = eErrorMetric_Uniform;
+	void SetErrorMetric(ErrorMetric e) { gErrorMetric = e; }
+
+	const float kErrorMetrics[kNumErrorMetrics][kNumColorChannels] = {
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		{ sqrtf(0.3f), sqrtf(0.56f), sqrtf(0.11f), 1.0f }
+	};
+
+	const float *GetErrorMetric() { return kErrorMetrics[GetErrorMetricEnum()]; }
+	ErrorMetric GetErrorMetricEnum() { return gErrorMetric; }
+
 	static int gQualityLevel = 50;
 	void SetQualityLevel(int q) {
 		gQualityLevel = MAX2(0, q);

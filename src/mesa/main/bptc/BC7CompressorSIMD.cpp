@@ -884,17 +884,6 @@ double BC7CompressionModeSIMD::Compress(BitStream &stream, const int shapeIdx, c
 
 namespace BC7C
 {
-	static ErrorMetric gErrorMetric = eErrorMetric_Uniform;
-	void SetErrorMetric(ErrorMetric e) { gErrorMetric = e; }
-
-	__declspec(align(16)) const float kErrorMetrics[kNumErrorMetrics][kNumColorChannels] = {
-		{ 1.0f, 1.0f, 1.0f, 1.0f },
-		{ sqrtf(0.3f), sqrtf(0.56f), sqrtf(0.11f), 1.0f }
-	};
-
-	const float *GetErrorMetric() { return kErrorMetrics[GetErrorMetricEnum()]; }
-	ErrorMetric GetErrorMetricEnum() { return gErrorMetric; }
-
 	// Function prototypes
 	static void ExtractBlock(const uint8_t* inPtr, int width, unsigned int* colorBlock);
 	static void CompressBC7Block(const unsigned int *block, uint8_t *outBuf);
