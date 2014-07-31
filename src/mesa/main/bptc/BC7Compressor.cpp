@@ -144,50 +144,6 @@ static int GetAnchorIndexForSubset(int subset, const int shapeIdx, const int nSu
 	return anchorIdx;
 }
 
-static int GetPointMaskForSubset(int subset, const int shapeIdx, const int nSubsets) {
-	int mask = 0xFFFF;
-
-	assert(subset < nSubsets);
-
-	switch(nSubsets) {
-		case 2:
-		{
-			mask = (subset)? kShapeMask2[shapeIdx] : ~(kShapeMask2[shapeIdx]);
-		}
-		break;
-
-		case 3:
-		{
-			switch(subset) {
-				default:
-				case 0:
-				{
-					mask = ~(kShapeMask3[shapeIdx][0]);
-				}
-				break;
-
-				case 1:
-				{
-					mask = ~(~(kShapeMask3[shapeIdx][0]) | kShapeMask3[shapeIdx][1]);
-				}
-				break;
-
-				case 2:
-				{
-					mask = kShapeMask3[shapeIdx][1];
-				}
-				break;
-			}
-		}
-		break;
-
-		default:
-		break;
-	}
-
-	return mask;
-}
-
 template <typename T>
 static void insert(T* buf, int bufSz, T newVal, int idx = 0) {
 	int safeIdx = CLAMP(idx, idx, bufSz-1);
