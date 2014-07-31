@@ -62,7 +62,7 @@ static inline void clamp(ty &x, const ty &min, const ty &max) {
 // absolute distance. It turns out the compiler does a much
 // better job of optimizing this than we can, since we can't
 // translate the values to/from registers
-static __forceinline uint8_t sad(uint8_t a, uint8_t b) {
+static inline uint8_t sad(uint8_t a, uint8_t b) {
 #if 0
 	__asm
 	{
