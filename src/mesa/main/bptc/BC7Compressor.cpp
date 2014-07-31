@@ -694,7 +694,6 @@ double BC7CompressionMode::CompressCluster(const RGBACluster &cluster, RGBAVecto
 	// If they're the same, then we can get them exactly.
 	if(a1 == a2)
 	{
-		const uint8_t step = 1 << (8-GetAlphaChannelPrecision());
 		const uint8_t a1be = uint8_t(a1);
 		const uint8_t a2be = uint8_t(a2);
 		const uint8_t a1b = ::QuantizeChannel(a1be, (((char)0x80) >> (GetAlphaChannelPrecision() - 1)));
@@ -897,8 +896,6 @@ double BC7CompressionMode::CompressCluster(const RGBACluster &cluster, RGBAVecto
 	}
 
 	const int nBuckets = (1 << GetNumberOfBitsPerIndex());
-	const int nPbitCombos = GetNumPbitCombos();
-	const unsigned int qmask = GetQuantizationMask();
 
 #if 1
 	RGBAVector avg = cluster.GetTotal() / float(cluster.GetNumPoints());
