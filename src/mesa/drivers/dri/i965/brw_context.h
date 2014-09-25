@@ -1450,10 +1450,7 @@ void intel_resolve_for_dri2_flush(struct brw_context *brw,
 GLboolean brwCreateContext(gl_api api,
 		      const struct gl_config *mesaVis,
 		      __DRIcontext *driContextPriv,
-                      unsigned major_version,
-                      unsigned minor_version,
-                      uint32_t flags,
-                      bool notify_reset,
+                      const struct __DriverContextConfig *ctx_config,
                       unsigned *error,
 		      void *sharedContextPrivate);
 

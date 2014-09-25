@@ -42,10 +42,7 @@
 GLboolean
 dri_create_context(gl_api api, const struct gl_config * visual,
 		   __DRIcontext * cPriv,
-		   unsigned major_version,
-		   unsigned minor_version,
-		   uint32_t flags,
-                   bool notify_reset,
+                   const struct __DriverContextConfig *ctx_config,
 		   unsigned *error,
 		   void *sharedContextPrivate)
 {
@@ -69,13 +66,13 @@ dri_create_context(gl_api api, const struct gl_config * visual,
    case API_OPENGL_CORE:
       attribs.profile = api == API_OPENGL_COMPAT ? ST_PROFILE_DEFAULT
                                                  : ST_PROFILE_OPENGL_CORE;
-      attribs.major = major_version;
-      attribs.minor = minor_version;
+      attribs.major = ctx_config->major_version;
+      attribs.minor = ctx_config->minor_version;
 
-      if ((flags & __DRI_CTX_FLAG_DEBUG) != 0)
+      if ((ctx_config->flags & __DRI_CTX_FLAG_DEBUG) != 0)
 	 attribs.flags |= ST_CONTEXT_FLAG_DEBUG;
 
-      if ((flags & __DRI_CTX_FLAG_FORWARD_COMPATIBLE) != 0)
+      if ((ctx_config->flags & __DRI_CTX_FLAG_FORWARD_COMPATIBLE) != 0)
 	 attribs.flags |= ST_CONTEXT_FLAG_FORWARD_COMPATIBLE;
       break;
    default:
@@ -83,12 +80,13 @@ dri_create_context(gl_api api, const struct gl_config * visual,
       goto fail;
    }
 
-   if (flags & ~(__DRI_CTX_FLAG_DEBUG | __DRI_CTX_FLAG_FORWARD_COMPATIBLE)) {
+   if (ctx_config->flags & ~(__DRI_CTX_FLAG_DEBUG |
+                             __DRI_CTX_FLAG_FORWARD_COMPATIBLE)) {
       *error = __DRI_CTX_ERROR_UNKNOWN_FLAG;
       goto fail;
    }
 
-   if (notify_reset) {
+   if (ctx_config->attribute_mask != 0) {
       *error = __DRI_CTX_ERROR_UNKNOWN_ATTRIBUTE;
       goto fail;
    }

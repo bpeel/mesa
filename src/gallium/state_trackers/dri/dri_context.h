@@ -86,10 +86,7 @@ boolean
 dri_create_context(gl_api api,
 		   const struct gl_config * visual,
 		   __DRIcontext * driContextPriv,
-		   unsigned major_version,
-		   unsigned minor_version,
-		   uint32_t flags,
-		   bool notify_reset,
+                   const struct __DriverContextConfig *ctx_config,
 		   unsigned *error,
 		   void *sharedContextPrivate);
 
