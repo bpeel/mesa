@@ -673,7 +673,9 @@ brwCreateContext(gl_api api,
       return false;
    }
 
-   if (ctx_config->attribute_mask & ~__DRIVER_CONTEXT_ATTRIB_RESET_STRATEGY) {
+   if (ctx_config->attribute_mask &
+       ~(__DRIVER_CONTEXT_ATTRIB_RESET_STRATEGY |
+         __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR)) {
       *dri_ctx_error = __DRI_CTX_ERROR_UNKNOWN_ATTRIBUTE;
       return false;
    }
@@ -681,6 +683,20 @@ brwCreateContext(gl_api api,
    bool notify_reset =
       ((ctx_config->attribute_mask & __DRIVER_CONTEXT_ATTRIB_RESET_STRATEGY) &&
        ctx_config->reset_strategy != __DRI_CTX_RESET_NO_NOTIFICATION);
+
+   GLenum release_behavior = GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH;
+   if (ctx_config->attribute_mask & __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR) {
+      switch (ctx_config->release_behavior) {
+      case __DRI_CTX_RELEASE_BEHAVIOR_NONE:
+         release_behavior = GL_NONE;
+         break;
+      case __DRI_CTX_RELEASE_BEHAVIOR_FLUSH:
+         break;
+      default:
+         *dri_ctx_error = __DRI_CTX_ERROR_UNKNOWN_ATTRIBUTE;
+         return false;
+      }
+   }
 
    struct brw_context *brw = rzalloc(NULL, struct brw_context);
    if (!brw) {
@@ -849,6 +865,8 @@ brwCreateContext(gl_api api,
 
    if ((ctx_config->flags & __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS) != 0)
       ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT_ARB;
+
+   ctx->Const.ContextReleaseBehavior = release_behavior;
 
    if (INTEL_DEBUG & DEBUG_SHADER_TIME)
       brw_init_shader_time(brw);

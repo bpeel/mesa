@@ -895,6 +895,7 @@ static const __DRIextension *intelScreenExtensions[] = {
     &intelImageExtension.base,
     &intelRendererQueryExtension.base,
     &dri2ConfigQueryExtension.base,
+    &dri2FlushControlExtension.base,
     NULL
 };
 
@@ -904,6 +905,7 @@ static const __DRIextension *intelRobustScreenExtensions[] = {
     &intelImageExtension.base,
     &intelRendererQueryExtension.base,
     &dri2ConfigQueryExtension.base,
+    &dri2FlushControlExtension.base,
     &dri2Robustness.base,
     NULL
 };
