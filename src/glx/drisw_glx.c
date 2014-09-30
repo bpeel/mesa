@@ -409,6 +409,7 @@ drisw_create_context_attribs(struct glx_screen *base,
    uint32_t flags;
    unsigned api;
    int reset;
+   int release;
    uint32_t ctx_attribs[2 * 4];
    unsigned num_ctx_attribs = 0;
 
@@ -422,7 +423,7 @@ drisw_create_context_attribs(struct glx_screen *base,
     */
    if (!dri2_convert_glx_attribs(num_attribs, attribs,
                                  &major_ver, &minor_ver, &renderType, &flags,
-                                 &api, &reset, error))
+                                 &api, &reset, &release, error))
       return NULL;
 
    /* Check the renderType value */
@@ -431,6 +432,9 @@ drisw_create_context_attribs(struct glx_screen *base,
    }
 
    if (reset != __DRI_CTX_RESET_NO_NOTIFICATION)
+      return NULL;
+
+   if (release != __DRI_CTX_RELEASE_BEHAVIOR_FLUSH)
       return NULL;
 
    if (shareList) {

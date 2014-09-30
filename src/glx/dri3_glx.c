@@ -177,7 +177,8 @@ dri3_create_context_attribs(struct glx_screen *base,
    uint32_t flags = 0;
    unsigned api;
    int reset = __DRI_CTX_RESET_NO_NOTIFICATION;
-   uint32_t ctx_attribs[2 * 5];
+   int release = __DRI_CTX_RELEASE_BEHAVIOR_FLUSH;
+   uint32_t ctx_attribs[2 * 6];
    unsigned num_ctx_attribs = 0;
    uint32_t render_type;
 
@@ -186,7 +187,7 @@ dri3_create_context_attribs(struct glx_screen *base,
    if (!dri2_convert_glx_attribs(num_attribs, attribs,
                                  &major_ver, &minor_ver,
                                  &render_type, &flags, &api,
-                                 &reset, error))
+                                 &reset, &release, error))
       goto error_exit;
 
    /* Check the renderType value */
@@ -219,6 +220,11 @@ dri3_create_context_attribs(struct glx_screen *base,
    if (reset != __DRI_CTX_RESET_NO_NOTIFICATION) {
       ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_RESET_STRATEGY;
       ctx_attribs[num_ctx_attribs++] = reset;
+   }
+
+   if (release != __DRI_CTX_RELEASE_BEHAVIOR_FLUSH) {
+      ctx_attribs[num_ctx_attribs++] = __DRI_CTX_ATTRIB_RELEASE_BEHAVIOR;
+      ctx_attribs[num_ctx_attribs++] = release;
    }
 
    if (flags != 0) {
@@ -1822,6 +1828,11 @@ dri3_bind_extensions(struct dri3_screen *psc, struct glx_display * priv,
          psc->rendererQuery = (__DRI2rendererQueryExtension *) extensions[i];
          __glXEnableDirectExtension(&psc->base, "GLX_MESA_query_renderer");
       }
+
+      if (strcmp(extensions[i]->name, __DRI2_FLUSH_CONTROL) == 0)
+         __glXEnableDirectExtension(&psc->base,
+                                    "GLX_ARB_context_flush_control");
+
    }
 }
 
