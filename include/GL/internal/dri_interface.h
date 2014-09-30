@@ -909,6 +909,8 @@ struct __DRIdri2LoaderExtensionRec {
  */
 #define __DRI_CTX_ATTRIB_RESET_STRATEGY		3
 
+#define __DRI_CTX_ATTRIB_RELEASE_BEHAVIOR	4
+
 #define __DRI_CTX_FLAG_DEBUG			0x00000001
 #define __DRI_CTX_FLAG_FORWARD_COMPATIBLE	0x00000002
 
@@ -923,6 +925,14 @@ struct __DRIdri2LoaderExtensionRec {
 /*@{*/
 #define __DRI_CTX_RESET_NO_NOTIFICATION		0
 #define __DRI_CTX_RESET_LOSE_CONTEXT		1
+/*@}*/
+
+/**
+ * \name Context release behaviors.
+ */
+/*@{*/
+#define __DRI_CTX_RELEASE_BEHAVIOR_NONE         0
+#define __DRI_CTX_RELEASE_BEHAVIOR_FLUSH        1
 /*@}*/
 
 /**
@@ -1327,6 +1337,21 @@ struct __DRI2configQueryExtensionRec {
 
 typedef struct __DRIrobustnessExtensionRec __DRIrobustnessExtension;
 struct __DRIrobustnessExtensionRec {
+   __DRIextension base;
+};
+
+/**
+ * Flush control driver extension.
+ *
+ * Existence of this extension means the driver can accept the
+ * \c __DRI_CTX_ATTRIB_RELEASE_BEHAVIOR attribute in
+ * \c __DRIdri2ExtensionRec::createContextAttribs.
+ */
+#define __DRI2_FLUSH_CONTROL "DRI_FlushControl"
+#define __DRI2_FLUSH_CONTROL_VERSION 1
+
+typedef struct __DRI2flushControlExtensionRec __DRI2flushControlExtension;
+struct __DRI2flushControlExtensionRec {
    __DRIextension base;
 };
 
