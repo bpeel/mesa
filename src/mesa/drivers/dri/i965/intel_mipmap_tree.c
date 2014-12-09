@@ -505,7 +505,7 @@ intel_miptree_choose_tiling(struct brw_context *brw,
     * to know that ahead of time.  And besides, since we use a vertical
     * alignment of 4 as often as we can, this shouldn't happen very often.
     */
-   if (brw->gen == 7 && mt->align_h == 2 &&
+   if (brw->gen >= 6 && mt->align_h == 2 &&
        brw->format_supported_as_render_target[format]) {
       return I915_TILING_X;
    }
