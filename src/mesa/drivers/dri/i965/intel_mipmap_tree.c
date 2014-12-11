@@ -644,6 +644,7 @@ intel_miptree_create(struct brw_context *brw,
        return NULL;
    }
 
+   assert(mt->tiling != I915_TILING_Y || (pitch % 128) == 0);
 
    if (mt->msaa_layout == INTEL_MSAA_LAYOUT_CMS) {
       if (!intel_miptree_alloc_mcs(brw, mt, num_samples)) {

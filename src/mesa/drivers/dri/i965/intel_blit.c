@@ -226,6 +226,9 @@ intel_miptree_blit(struct brw_context *brw,
    if (src_flip != dst_flip)
       src_pitch = -src_pitch;
 
+   assert(src_mt->tiling != I915_TILING_Y || (src_mt->pitch % 128) == 0);
+   assert(dst_mt->tiling != I915_TILING_Y || (dst_mt->pitch % 128) == 0);
+
    uint32_t src_image_x, src_image_y;
    intel_miptree_get_image_offset(src_mt, src_level, src_slice,
                                   &src_image_x, &src_image_y);
@@ -318,6 +321,9 @@ intelEmitCopyBlit(struct brw_context *brw,
    }
    if ((dst_y_tiled || src_y_tiled) && brw->gen < 6)
       return false;
+
+   assert(!dst_y_tiled || (dst_pitch % 128) == 0);
+   assert(!src_y_tiled || (src_pitch % 128) == 0);
 
    /* do space check before going any further */
    do {
