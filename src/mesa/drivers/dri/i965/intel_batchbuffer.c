@@ -384,6 +384,7 @@ intel_batchbuffer_emit_reloc64(struct brw_context *brw,
     * processing in the kernel
     */
    uint64_t offset = buffer->offset64 + delta;
+   assert(brw->batch.ring != BLT_RING || !(offset & 0xfff));
    intel_batchbuffer_emit_dword(brw, offset);
    intel_batchbuffer_emit_dword(brw, offset >> 32);
 

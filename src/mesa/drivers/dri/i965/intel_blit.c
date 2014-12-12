@@ -130,6 +130,20 @@ set_blitter_tiling(struct brw_context *brw,
       ADVANCE_BATCH();                                                  \
    } while (0)
 
+static int
+tile_width(uint32_t tiling)
+{
+   switch (tiling) {
+   default:
+      assert(false);
+   case I915_TILING_NONE:
+      return 1;
+   case I915_TILING_X:
+      return 512;
+   case I915_TILING_Y:
+      return 128;
+   }
+}
 /**
  * Implements a rectangular block transfer (blit) of pixels between two
  * miptrees.
@@ -234,11 +248,27 @@ intel_miptree_blit(struct brw_context *brw,
                                   &src_image_x, &src_image_y);
    src_x += src_image_x;
    src_y += src_image_y;
-
+   unsigned src_offset = src_mt->offset;
    /* The blitter interprets the 16-bit src x/y as a signed 16-bit value,
     * where negative values are invalid.  The values we're working with are
     * unsigned, so make sure we don't overflow.
     */
+
+   if (src_slice > 0 && src_y >= 32768 && src_mt->tiling == I915_TILING_Y) {
+      /* Pick a page aligned offset for the base offset in the upcoming blit
+       * operation
+       */
+      unsigned temp = src_y;
+      unsigned src_y_byte_offset = src_offset + src_y * src_mt->pitch;
+      uint32_t page_offset = ROUND_DOWN_TO(src_y_byte_offset,
+                        4096 * (src_mt->pitch / tile_width(src_mt->tiling)));
+      src_offset = page_offset;
+      src_y -= page_offset / src_mt->pitch;
+      assert(page_offset % tile_width(src_mt->tiling) == 0);
+      assert(is_power_of_two(src_mt->pitch / tile_width(src_mt->tiling)));
+      assert(src_y < 32768);
+   } 
+
    if (src_x >= 32768 || src_y >= 32768) {
       perf_debug("Falling back due to >=32k src offset (%d, %d)\n",
                  src_x, src_y);
@@ -250,6 +280,21 @@ intel_miptree_blit(struct brw_context *brw,
                                   &dst_image_x, &dst_image_y);
    dst_x += dst_image_x;
    dst_y += dst_image_y;
+
+   unsigned dst_offset = dst_mt->offset;
+   if (dst_slice > 0 && dst_y >= 32768 && dst_mt->tiling == I915_TILING_Y) {
+      /* Pick a page aligned offset for the base offset in the upcoming blit
+       * operation
+       */
+      unsigned temp = dst_y;
+      unsigned dst_y_byte_offset = dst_offset + dst_y * dst_mt->pitch;
+      uint32_t page_offset = ROUND_DOWN_TO(dst_y_byte_offset,
+                        4096 * (dst_mt->pitch / tile_width(dst_mt->tiling)));
+      assert(is_power_of_two(dst_mt->pitch / tile_width(dst_mt->tiling)));
+      dst_offset = page_offset;
+      dst_y -= page_offset / dst_mt->pitch;
+      assert(page_offset % tile_width(dst_mt->tiling) == 0);
+   } 
 
    /* The blitter interprets the 16-bit destination x/y as a signed 16-bit
     * value.  The values we're working with are unsigned, so make sure we
@@ -264,10 +309,10 @@ intel_miptree_blit(struct brw_context *brw,
    if (!intelEmitCopyBlit(brw,
                           src_mt->cpp,
                           src_pitch,
-                          src_mt->bo, src_mt->offset,
+                          src_mt->bo, src_offset,
                           src_mt->tiling,
                           dst_mt->pitch,
-                          dst_mt->bo, dst_mt->offset,
+                          dst_mt->bo, dst_offset,
                           dst_mt->tiling,
                           src_x, src_y,
                           dst_x, dst_y,
@@ -313,17 +358,19 @@ intelEmitCopyBlit(struct brw_context *brw,
 
    if (dst_tiling != I915_TILING_NONE) {
       if (dst_offset & 4095)
-	 return false;
+         abort();
    }
    if (src_tiling != I915_TILING_NONE) {
-      if (src_offset & 4095)
-	 return false;
+      if (src_offset & 4095) 
+         abort();
    }
    if ((dst_y_tiled || src_y_tiled) && brw->gen < 6)
       return false;
 
    assert(!dst_y_tiled || (dst_pitch % 128) == 0);
    assert(!src_y_tiled || (src_pitch % 128) == 0);
+   assert(!dst_y_tiled || (dst_offset % 4096) == 0);
+   assert(!src_y_tiled || (src_offset % 4096) == 0);
 
    /* do space check before going any further */
    do {
@@ -338,8 +385,10 @@ intelEmitCopyBlit(struct brw_context *brw,
            break;
    } while (pass < 2);
 
-   if (pass >= 2)
+   if (pass >= 2) {
+      abort();
       return false;
+   }
 
    unsigned length = brw->gen >= 8 ? 10 : 8;
 
@@ -353,7 +402,7 @@ intelEmitCopyBlit(struct brw_context *brw,
     * the low bits.
     */
    if (src_pitch % 4 != 0 || dst_pitch % 4 != 0)
-      return false;
+         abort();
 
    /* For big formats (such as floating point), do the copy using 16 or 32bpp
     * and multiply the coordinates.
@@ -397,6 +446,7 @@ intelEmitCopyBlit(struct brw_context *brw,
    }
 
    if (dst_y2 <= dst_y || dst_x2 <= dst_x) {
+      abort();
       return true;
    }
 
