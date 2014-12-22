@@ -105,7 +105,7 @@ intel_try_pbo_upload(struct gl_context *ctx,
 
    DBG("trying pbo upload\n");
 
-   if (ctx->_ImageTransferState || unpack->SkipPixels || unpack->SkipRows) {
+   if (ctx->_ImageTransferState) {
       DBG("%s: image transfer\n", __FUNCTION__);
       return false;
    }
@@ -137,6 +137,11 @@ intel_try_pbo_upload(struct gl_context *ctx,
 
    /* note: potential 64-bit ptr to 32-bit int cast */
    src_offset = (GLuint) (unsigned long) pixels;
+   src_offset += _mesa_image_offset(2,
+                                    unpack,
+                                    width, height,
+                                    format, type,
+                                    0, 0, 0 /* img/row/column */);
    src_buffer = intel_bufferobj_buffer(brw, pbo,
                                        src_offset, src_stride * height);
 
