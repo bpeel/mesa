@@ -71,8 +71,8 @@ intel_texsubimage_tiled_memcpy(struct gl_context *ctx,
 bool
 intel_try_pbo_upload(struct gl_context *ctx,
                      struct gl_texture_image *image,
-                     GLint xoffset, GLint yoffset,
-                     GLsizei width, GLsizei height,
+                     GLint xoffset, GLint yoffset, GLint zoffset,
+                     GLsizei width, GLsizei height, GLsizei depth,
                      const struct gl_pixelstore_attrib *unpack,
                      GLenum format, GLenum type, const void *pixels,
                      bool for_glTexImage);

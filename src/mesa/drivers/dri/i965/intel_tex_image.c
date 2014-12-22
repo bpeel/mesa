@@ -88,8 +88,8 @@ intel_miptree_create_for_teximage(struct brw_context *brw,
 bool
 intel_try_pbo_upload(struct gl_context *ctx,
                      struct gl_texture_image *image,
-                     GLint xoffset, GLint yoffset,
-                     GLsizei width, GLsizei height,
+                     GLint xoffset, GLint yoffset, GLint zoffset,
+                     GLsizei width, GLsizei height, GLsizei depth,
                      const struct gl_pixelstore_attrib *unpack,
                      GLenum format, GLenum type, const void *pixels,
                      bool for_glTexImage)
@@ -99,6 +99,7 @@ intel_try_pbo_upload(struct gl_context *ctx,
    struct intel_buffer_object *pbo = intel_buffer_object(unpack->BufferObj);
    GLuint src_offset;
    drm_intel_bo *src_buffer;
+   int i;
 
    if (!_mesa_is_bufferobj(unpack->BufferObj))
       return false;
@@ -126,47 +127,96 @@ intel_try_pbo_upload(struct gl_context *ctx,
       return false;
    }
 
-   if (image->TexObject->Target == GL_TEXTURE_1D_ARRAY ||
-       image->TexObject->Target == GL_TEXTURE_2D_ARRAY) {
-      DBG("%s: no support for array textures\n", __FUNCTION__);
+   int src_stride =
+      _mesa_image_row_stride(unpack, width, format, type);
+   int dims, num_slices = 1, slice_offset = 0;
+   int src_image_stride = 0;
+
+   switch (image->TexObject->Target) {
+   case GL_TEXTURE_2D:
+   case GL_TEXTURE_RECTANGLE:
+   case GL_TEXTURE_CUBE_MAP:
+      /* one image slice, nothing special needs to be done */
+      dims = 2;
+      src_image_stride = src_stride * height;
+      break;
+   case GL_TEXTURE_1D:
+      dims = 1;
+      src_image_stride = src_stride * height;
+      break;
+   case GL_TEXTURE_1D_ARRAY:
+      num_slices = height;
+      slice_offset = yoffset;
+      height = 1;
+      yoffset = 0;
+      dims = 2;
+      src_image_stride = src_stride;
+      break;
+   case GL_TEXTURE_2D_ARRAY:
+      num_slices = depth;
+      slice_offset = zoffset;
+      depth = 1;
+      zoffset = 0;
+      dims = 3;
+      src_image_stride = _mesa_image_image_stride(unpack, width, height,
+                                                  format, type);
+      break;
+   case GL_TEXTURE_3D:
+      num_slices = depth;
+      slice_offset = zoffset;
+      dims = 3;
+      src_image_stride = _mesa_image_image_stride(unpack, width, height,
+                                                  format, type);
+      break;
+   case GL_TEXTURE_CUBE_MAP_ARRAY:
+      num_slices = depth;
+      slice_offset = zoffset;
+      dims = 3;
+      src_image_stride = _mesa_image_image_stride(unpack, width, height,
+                                                  format, type);
+      break;
+   default:
       return false;
    }
 
-   int src_stride =
-      _mesa_image_row_stride(unpack, width, format, type);
-
    /* note: potential 64-bit ptr to 32-bit int cast */
    src_offset = (GLuint) (unsigned long) pixels;
-   src_offset += _mesa_image_offset(2,
+   src_offset += _mesa_image_offset(dims,
                                     unpack,
                                     width, height,
                                     format, type,
                                     0, 0, 0 /* img/row/column */);
-   src_buffer = intel_bufferobj_buffer(brw, pbo,
-                                       src_offset, src_stride * height);
 
-   struct intel_mipmap_tree *pbo_mt =
-      intel_miptree_create_for_bo(brw,
-                                  src_buffer,
-                                  intelImage->mt->format,
-                                  src_offset,
-                                  width, height,
-                                  src_stride);
-   if (!pbo_mt)
-      return false;
+   for (i = 0; i < num_slices; i++) {
+      src_buffer = intel_bufferobj_buffer(brw, pbo,
+                                          src_offset, src_stride * height);
 
-   if (!intel_miptree_blit(brw,
-                           pbo_mt, 0, 0,
-                           0, 0, false,
-                           intelImage->mt, image->Level, image->Face,
-                           xoffset, yoffset, false,
-                           width, height, GL_COPY)) {
-      DBG("%s: blit failed\n", __FUNCTION__);
+      struct intel_mipmap_tree *pbo_mt =
+         intel_miptree_create_for_bo(brw,
+                                     src_buffer,
+                                     intelImage->mt->format,
+                                     src_offset,
+                                     width, height,
+                                     src_stride);
+      if (!pbo_mt)
+         return false;
+
+      if (!intel_miptree_blit(brw,
+                              pbo_mt, 0, 0,
+                              0, 0, false,
+                              intelImage->mt, image->Level,
+                              slice_offset + i + image->Face,
+                              xoffset, yoffset, false,
+                              width, height, GL_COPY)) {
+         DBG("%s: blit failed\n", __FUNCTION__);
+         intel_miptree_release(&pbo_mt);
+         return false;
+      }
+
       intel_miptree_release(&pbo_mt);
-      return false;
-   }
 
-   intel_miptree_release(&pbo_mt);
+      src_offset += src_image_stride;
+   }
 
    DBG("%s: success\n", __FUNCTION__);
    return true;
@@ -199,11 +249,11 @@ intelTexImage(struct gl_context * ctx,
 
    /* Attempt to use the blitter for PBO image uploads.
     */
-   if (dims <= 2 &&
-       intel_try_pbo_upload(ctx, texImage,
-                            0, 0, /* x,y offsets */
+   if (intel_try_pbo_upload(ctx, texImage,
+                            0, 0, 0, /* x,y,z offsets */
                             texImage->Width,
                             texImage->Height,
+                            texImage->Depth,
                             unpack, format, type, pixels,
                             true /*for_glTexImage*/)) {
       return;
