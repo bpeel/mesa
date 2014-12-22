@@ -85,13 +85,14 @@ intel_miptree_create_for_teximage(struct brw_context *brw,
                                false);
 }
 
-/* XXX: Do this for TexSubImage also:
- */
-static bool
-try_pbo_upload(struct gl_context *ctx,
-               struct gl_texture_image *image,
-               const struct gl_pixelstore_attrib *unpack,
-	       GLenum format, GLenum type, const void *pixels)
+bool
+intel_try_pbo_upload(struct gl_context *ctx,
+                     struct gl_texture_image *image,
+                     GLint xoffset, GLint yoffset,
+                     GLsizei width, GLsizei height,
+                     const struct gl_pixelstore_attrib *unpack,
+                     GLenum format, GLenum type, const void *pixels,
+                     bool for_glTexImage)
 {
    struct intel_texture_image *intelImage = intel_texture_image(image);
    struct brw_context *brw = brw_context(ctx);
@@ -109,7 +110,8 @@ try_pbo_upload(struct gl_context *ctx,
       return false;
    }
 
-   ctx->Driver.AllocTextureImageBuffer(ctx, image);
+   if (for_glTexImage)
+      ctx->Driver.AllocTextureImageBuffer(ctx, image);
 
    if (!intelImage->mt) {
       DBG("%s: no miptree\n", __FUNCTION__);
@@ -131,19 +133,19 @@ try_pbo_upload(struct gl_context *ctx,
    }
 
    int src_stride =
-      _mesa_image_row_stride(unpack, image->Width, format, type);
+      _mesa_image_row_stride(unpack, width, format, type);
 
    /* note: potential 64-bit ptr to 32-bit int cast */
    src_offset = (GLuint) (unsigned long) pixels;
    src_buffer = intel_bufferobj_buffer(brw, pbo,
-                                       src_offset, src_stride * image->Height);
+                                       src_offset, src_stride * height);
 
    struct intel_mipmap_tree *pbo_mt =
       intel_miptree_create_for_bo(brw,
                                   src_buffer,
                                   intelImage->mt->format,
                                   src_offset,
-                                  image->Width, image->Height,
+                                  width, height,
                                   src_stride);
    if (!pbo_mt)
       return false;
@@ -152,8 +154,8 @@ try_pbo_upload(struct gl_context *ctx,
                            pbo_mt, 0, 0,
                            0, 0, false,
                            intelImage->mt, image->Level, image->Face,
-                           0, 0, false,
-                           image->Width, image->Height, GL_COPY)) {
+                           xoffset, yoffset, false,
+                           width, height, GL_COPY)) {
       DBG("%s: blit failed\n", __FUNCTION__);
       intel_miptree_release(&pbo_mt);
       return false;
@@ -193,7 +195,12 @@ intelTexImage(struct gl_context * ctx,
    /* Attempt to use the blitter for PBO image uploads.
     */
    if (dims <= 2 &&
-       try_pbo_upload(ctx, texImage, unpack, format, type, pixels)) {
+       intel_try_pbo_upload(ctx, texImage,
+                            0, 0, /* x,y offsets */
+                            texImage->Width,
+                            texImage->Height,
+                            unpack, format, type, pixels,
+                            true /*for_glTexImage*/)) {
       return;
    }
 
