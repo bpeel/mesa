@@ -86,6 +86,27 @@ compute_msaa_layout(struct brw_context *brw, mesa_format format, GLenum target)
    }
 }
 
+static uint32_t
+compute_real_blit_height(struct intel_mipmap_tree *mt)
+{
+   switch (mt->target) {
+   case GL_TEXTURE_CUBE_MAP:
+   case GL_TEXTURE_1D_ARRAY:
+   case GL_TEXTURE_2D_ARRAY:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+   case GL_TEXTURE_CUBE_MAP_ARRAY:
+      assert(mt->logical_depth0);
+      return mt->qpitch;
+   case GL_TEXTURE_3D:
+      /* FIXME 3d textures don't have a qpitch. I think it's simply the tiled
+       * aligned mt->physical_height0. Since 3D textures aren't used often, just
+       * print the perf debug from the caller and bail
+       */
+       /* fallthrough */
+   default:
+      return mt->total_height;
+   }
+}
 
 /**
  * For single-sampled render targets ("non-MSRT"), the MCS buffer is a
@@ -416,6 +437,17 @@ intel_miptree_create_layout(struct brw_context *brw,
    return mt;
 }
 
+static bool
+miptree_exceeds_blit_height(struct intel_mipmap_tree *mt)
+{
+   /* FIXME: Add 3d texture support */
+   if (mt->target == GL_TEXTURE_3D && mt->total_height >= 32768) {
+      return true;
+   }
+
+   return compute_real_blit_height(mt) >= 32768;
+}
+
 /**
  * \brief Helper function for intel_miptree_create().
  */
@@ -473,10 +505,22 @@ intel_miptree_choose_tiling(struct brw_context *brw,
    if (minimum_pitch < 64)
       return I915_TILING_NONE;
 
-   if (ALIGN(minimum_pitch, 512) >= 32768 ||
-       mt->total_width >= 32768 || mt->total_height >= 32768) {
-      perf_debug("%dx%d miptree too large to blit, falling back to untiled",
-                 mt->total_width, mt->total_height);
+   if (ALIGN(minimum_pitch, 512) >= 32768 || miptree_exceeds_blit_height(mt)) {
+      if (mt->format == GL_TEXTURE_3D) {
+         perf_debug("Unsupported large 3D texture blit. "
+                    "Falling back to untiled.\n");
+      } else {
+         /* qpitch should always be greater than or equal to the tile aligned
+          * maximum of lod0 height.  That is sufficient to determine if we can
+          * blit, but the most optimal value is potentially less.
+          */
+         if (mt->physical_height0 < 32768) {
+            perf_debug("Potentially skipped a blittable buffers %d\n",
+                  mt->physical_height0);
+         }
+         perf_debug("%dx%d miptree too large to blit, falling back to untiled",
+                    mt->total_width, mt->total_height);
+      }
       return I915_TILING_NONE;
    }
 
@@ -620,11 +664,14 @@ intel_miptree_create(struct brw_context *brw,
                                       BO_ALLOC_FOR_RENDER : 0));
    mt->pitch = pitch;
 
+   uint32_t size = ALIGN(compute_real_blit_height(mt) * mt->pitch, 512);
+   assert(size <= mt->bo->size);
+
    /* If the BO is too large to fit in the aperture, we need to use the
     * BLT engine to support it.  The BLT paths can't currently handle Y-tiling,
     * so we need to fall back to X.
     */
-   if (y_or_x && mt->bo->size >= brw->max_gtt_map_object_size) {
+   if (y_or_x && size >= brw->max_gtt_map_object_size) {
       perf_debug("%dx%d miptree larger than aperture; falling back to X-tiled\n",
                  mt->total_width, mt->total_height);
 
@@ -1748,6 +1795,8 @@ intel_miptree_map_gtt(struct brw_context *brw,
    intptr_t x = map->x;
    intptr_t y = map->y;
 
+   assert(mt->bo->size < brw->max_gtt_map_object_size);
+
    /* For compressed formats, the stride is the number of bytes per
     * row of blocks.  intel_miptree_get_image_offset() already does
     * the divide.
@@ -2247,16 +2296,8 @@ static bool
 can_blit_slice(struct intel_mipmap_tree *mt,
                unsigned int level, unsigned int slice)
 {
-   uint32_t image_x;
-   uint32_t image_y;
-   intel_miptree_get_image_offset(mt, level, slice, &image_x, &image_y);
-   if (image_x >= 32768 || image_y >= 32768)
-      return false;
-
-   if (mt->pitch >= 32768)
-      return false;
-
-   return true;
+   return compute_real_blit_height(mt) < 32768 &&
+          mt->pitch < 32768;
 }
 
 /**
