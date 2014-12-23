@@ -24,6 +24,7 @@
 #include "intel_blit.h"
 #include "intel_fbo.h"
 #include "intel_image.h"
+#include "brw_blorp.h"
 
 #include "brw_context.h"
 
@@ -201,17 +202,22 @@ intel_try_pbo_upload(struct gl_context *ctx,
       if (!pbo_mt)
          return false;
 
-      if (!intel_miptree_blit(brw,
-                              pbo_mt, 0, 0,
-                              0, 0, false,
-                              intelImage->mt, image->Level,
+      brw_blorp_blit_miptrees(brw,
+                              pbo_mt,
+                              0, /* src_level */
+                              0, /* src_layer */
+                              pbo_mt->format,
+                              intelImage->mt,
+                              image->Level,
                               slice_offset + i + image->Face,
-                              xoffset, yoffset, false,
-                              width, height, GL_COPY)) {
-         DBG("%s: blit failed\n", __FUNCTION__);
-         intel_miptree_release(&pbo_mt);
-         return false;
-      }
+                              intelImage->mt->format,
+                              0, 0, /* src_x/y0 */
+                              width, height, /* src_x/y1 */
+                              xoffset, yoffset,
+                              xoffset + width,
+                              yoffset + height,
+                              GL_NEAREST,
+                              false, false /* mirror_x/y */);
 
       intel_miptree_release(&pbo_mt);
 
