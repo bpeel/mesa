@@ -156,7 +156,7 @@ static const struct brw_device_info brw_device_info_hsw_gt1 = {
    GEN7_FEATURES, .is_haswell = true, .gt = 1,
    .max_vs_threads = 70,
    .max_gs_threads = 70,
-   .max_wm_threads = 102,
+   .max_wm_threads = 70,
    .urb = {
       .size = 128,
       .min_vs_entries = 32,
