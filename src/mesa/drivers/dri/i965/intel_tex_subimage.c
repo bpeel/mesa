@@ -694,10 +694,9 @@ intelTexSubImage(struct gl_context * ctx,
 
    /* Attempt to use the blitter for PBO image uploads.
     */
-   if (dims <= 2 &&
-       intel_try_pbo_upload(ctx, texImage,
-                            xoffset, yoffset,
-                            width, height,
+   if (intel_try_pbo_upload(ctx, texImage,
+                            xoffset, yoffset, zoffset,
+                            width, height, depth,
                             packing, format, type, pixels,
                             false /*for_glTexImage*/)) {
       return;
