@@ -130,6 +130,103 @@ set_blitter_tiling(struct brw_context *brw,
       ADVANCE_BATCH();                                                  \
    } while (0)
 
+
+/* Returns the height of the tiling format. This would be measured in scanlines
+ * (of pitch bytes) */
+static int
+tile_height(uint32_t tiling)
+{
+   const long PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
+   switch (tiling) {
+   case I915_TILING_X:
+      return PAGE_SIZE / 512;
+   case I915_TILING_Y:
+      return PAGE_SIZE / 128;
+   case I915_TILING_NONE:
+   default:
+      unreachable("Helper function is only used for tiled surfaces\n");
+   }
+}
+
+/* This function returns the offset to be used by the blit operation. It may
+ * modify the y if the texture would otherwise fail to be able to perform a
+ * blit. The x offset will not need to change based on the computations made by
+ * this function.
+ *
+ * By the time we get to this function, the miptree creation code should have
+ * already determined it's possible to blit the texture, so there should never
+ * be a case where this function fails.
+ */
+static GLuint
+intel_miptree_get_adjusted_y_offset(struct intel_mipmap_tree *mt, int slice,
+                                    uint32_t *y)
+{
+   GLuint offset = mt->offset;
+
+   /* Convert an input number of rows: y into 2 values: an offset (page aligned
+    * in byte units), and the remaining rows of y. The resulting 2 values will
+    * be used as parameters for a blit operation [using the HW blit engine].
+    * They will therefore conform to whatever restrictions are needed.
+    *
+    * XXX: This code assumes that LOD0 is always guaranteed to be properly
+    * aligned for the blit operation. The round down only mutates y if the LOD
+    * being adjusted isn't tile aligned. In other words, if input y is pointing
+    * to LOD0 of a slice, the adjusted y should always be 0. Similarly if input
+    * y is pointing to another LOD, and the offset happens to be tile aligned, y
+    * will again be 0.
+    *
+    * The following diagram shows how the blit parameters are modified. In the
+    * example, is is trying to blit with LOD1 from slice[x] as a surface, and
+    * LOD1 is not properly tile aligned.  "TA" means tile aligned. The rectangle
+    * is the BO that contains the mipmaps. There may be an offset from the start
+    * of the BO to the first slice.
+    *
+    *                   INPUT                               OUTPUT
+    *   0    +---------------------------+
+    *        |                           |        +---------------------------+
+    * offset |  slice[0]...slice[x-2]    | offset |  +----------+             |
+    *        |                           |        |  |  lod0    | slice[x]    |
+    *   TA   |  +----------+             |        |  |          |             |
+    *        |  |  lod0    | slice[x-1]  |        |  +----------+             |
+    *        |  |          |             |  y---> |  +---+ +-+                |
+    *        |  +----------+             |        |  |   | +-+                |
+    *        |  +---+ +-+                |        |  +---+ *                  |
+    *        |  |   | +-+                |        |                           |
+    *        |  +---+ *                  |        |  slice[x+1]...            |
+    *        |                           |        +---------------------------+
+    *        |  // qpitch padding        |
+    *        |                           |
+    *   TA   |  +----------+             |
+    *        |  |  lod0    | slice[x]    |
+    *        |  |          |             |
+    *        |  +----------+             |
+    *  y---> |  +---+ +-+                |
+    *        |  |   | +-+                |
+    *        |  +---+ *                  |
+    *        |                           |
+    *        |  slice[x+1]...            |
+    *        +---------------------------+
+    */
+   if (slice > 0 && *y >= 32768) {
+      const long PAGE_MASK = sysconf(_SC_PAGE_SIZE) - 1;
+
+      /* Since we need to output a page aligned offset, the original offset must
+       * also be page aligned. For tiled buffers, it always should be. */
+      assert((offset & PAGE_MASK) == 0);
+
+      /* Adjust the y value to pick the nearest tile aligned mipmap row */
+      unsigned tile_aligned_row = ROUND_DOWN_TO(*y, tile_height(mt->tiling));
+      *y -= tile_aligned_row;
+
+      /* Convert tiled aligned row to a byte offset for use by the blitter */
+      tile_aligned_row *= mt->pitch;
+      assert((tile_aligned_row & PAGE_MASK) == 0);
+      offset += tile_aligned_row;
+   }
+
+   return offset;
+}
+
 /**
  * Implements a rectangular block transfer (blit) of pixels between two
  * miptrees.
@@ -236,6 +333,11 @@ intel_miptree_blit(struct brw_context *brw,
    dst_x += dst_image_x;
    dst_y += dst_image_y;
 
+   GLuint src_offset = intel_miptree_get_adjusted_y_offset(src_mt, src_slice,
+                                                           &src_y);
+   GLuint dst_offset = intel_miptree_get_adjusted_y_offset(dst_mt, dst_slice,
+                                                           &dst_y);
+
    /* The blitter interprets the 16-bit destination x/y as a signed 16-bit
     * value. The values we're working with are unsigned, so make sure we don't
     * overflow.
@@ -249,10 +351,10 @@ intel_miptree_blit(struct brw_context *brw,
    if (!intelEmitCopyBlit(brw,
                           src_mt->cpp,
                           src_pitch,
-                          src_mt->bo, src_mt->offset,
+                          src_mt->bo, src_offset,
                           src_mt->tiling,
                           dst_mt->pitch,
-                          dst_mt->bo, dst_mt->offset,
+                          dst_mt->bo, dst_offset,
                           dst_mt->tiling,
                           src_x, src_y,
                           dst_x, dst_y,
