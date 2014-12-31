@@ -171,8 +171,7 @@ brw_cache_new_bo(struct brw_cache *cache, uint32_t new_size)
    drm_intel_bo *new_bo;
 
    new_bo = drm_intel_bo_alloc(brw->bufmgr, "program cache", new_size, 64);
-   if (brw->has_llc)
-      drm_intel_gem_bo_map_unsynchronized(new_bo);
+   drm_intel_gem_bo_map_unsynchronized(new_bo);
 
    /* Copy any existing data that needs to be saved. */
    if (cache->next_offset != 0) {
@@ -357,8 +356,7 @@ brw_init_caches(struct brw_context *brw)
    cache->bo = drm_intel_bo_alloc(brw->bufmgr,
 				  "program cache",
 				  4096, 64);
-   if (brw->has_llc)
-      drm_intel_gem_bo_map_unsynchronized(cache->bo);
+   drm_intel_gem_bo_map_unsynchronized(cache->bo);
 
    cache->aux_compare[BRW_CACHE_VS_PROG] = brw_vs_prog_data_compare;
    cache->aux_compare[BRW_CACHE_GS_PROG] = brw_gs_prog_data_compare;

@@ -254,7 +254,6 @@ brw_buffer_subdata(struct gl_context *ctx,
     * (otherwise, an app that might occasionally stall but mostly not will end
     * up with blitting all the time, at the cost of bandwidth)
     */
-   if (brw->has_llc) {
       if (offset + size <= intel_obj->gpu_active_start ||
           intel_obj->gpu_active_end <= offset) {
          drm_intel_gem_bo_map_unsynchronized(intel_obj->buffer);
@@ -265,7 +264,6 @@ brw_buffer_subdata(struct gl_context *ctx,
             intel_obj->prefer_stall_to_blit = true;
          return;
       }
-   }
 
    busy =
       drm_intel_bo_busy(intel_obj->buffer) ||
@@ -426,12 +424,8 @@ brw_map_buffer_range(struct gl_context *ctx,
                                                           length +
                                                           intel_obj->map_extra[index],
                                                           alignment);
-      if (brw->has_llc) {
          brw_bo_map(brw, intel_obj->range_map_bo[index],
                     (access & GL_MAP_WRITE_BIT) != 0, "range-map");
-      } else {
-         drm_intel_gem_bo_map_gtt(intel_obj->range_map_bo[index]);
-      }
       obj->Mappings[index].Pointer =
          intel_obj->range_map_bo[index]->virtual + intel_obj->map_extra[index];
       return obj->Mappings[index].Pointer;
