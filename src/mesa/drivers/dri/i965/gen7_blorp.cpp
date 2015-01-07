@@ -175,8 +175,8 @@ gen7_blorp_emit_surface_state(struct brw_context *brw,
       surf[0] |= GEN7_SURFACE_ARYSPC_FULL;
 
    /* reloc */
-   surf[1] =
-      surface->compute_tile_offsets(&tile_x, &tile_y) + mt->bo->offset64;
+   surf[1] = (surface->compute_tile_offsets(&tile_x, &tile_y) +
+              mt->offset + mt->bo->offset64);
 
    /* Note that the low bits of these fields are missing, so
     * there's the possibility of getting in trouble.

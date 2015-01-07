@@ -381,7 +381,7 @@ gen6_blorp_emit_surface_state(struct brw_context *brw,
 
    /* reloc */
    surf[1] = (surface->compute_tile_offsets(&tile_x, &tile_y) +
-              mt->bo->offset64);
+              mt->offset + mt->bo->offset64);
 
    surf[2] = (0 << BRW_SURFACE_LOD_SHIFT |
               (width - 1) << BRW_SURFACE_WIDTH_SHIFT |
