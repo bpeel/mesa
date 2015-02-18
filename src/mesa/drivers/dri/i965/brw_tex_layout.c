@@ -300,20 +300,47 @@ brw_miptree_layout_texture_array(struct brw_context *brw,
    int h0, h1;
    unsigned height = mt->physical_height0;
    bool layout_1d = use_linear_1d_layout(brw, mt);
-
-   h0 = ALIGN(mt->physical_height0, mt->align_h);
-   h1 = ALIGN(minify(mt->physical_height0, 1), mt->align_h);
-   if (mt->array_layout == ALL_SLICES_AT_EACH_LOD)
-      mt->qpitch = h0;
-   else
-      mt->qpitch = (h0 + h1 + (brw->gen >= 7 ? 12 : 11) * mt->align_h);
-
-   int physical_qpitch = mt->compressed ? mt->qpitch / 4 : mt->qpitch;
+   int physical_qpitch;
 
    if (layout_1d)
       gen9_miptree_layout_1d(mt);
    else
       brw_miptree_layout_2d(mt);
+
+   h0 = ALIGN(mt->physical_height0, mt->align_h);
+   h1 = ALIGN(minify(mt->physical_height0, 1), mt->align_h);
+   if (layout_1d) {
+      physical_qpitch = mt->align_h;
+      /* When using the horizontal layout the qpitch is measured in pixels */
+      mt->qpitch = physical_qpitch * mt->total_width;
+   } else if (brw->gen >= 9) {
+      /* On Gen9 we can pick whatever qpitch we like as long as it's aligned
+       * to the vertical alignment so we don't need to add any extra rows.
+       */
+      mt->qpitch = h0 + h1;
+
+      /* However 3D textures need to be aligned to the tile height. At this
+       * point we don't know which tiling will be used so let's just align it
+       * to 32
+       */
+      if (mt->target == GL_TEXTURE_3D)
+         mt->qpitch = ALIGN(mt->qpitch, 32);
+
+      /* Unlike previous generations the qpitch is now a multiple of the
+       * compressed block size
+       */
+      if (mt->compressed)
+         mt->qpitch /= 4;
+
+      physical_qpitch = mt->qpitch;
+   } else {
+      if (mt->array_layout == ALL_SLICES_AT_EACH_LOD)
+         mt->qpitch = h0;
+      else
+         mt->qpitch = (h0 + h1 + (brw->gen >= 7 ? 12 : 11) * mt->align_h);
+
+      physical_qpitch = mt->compressed ? mt->qpitch / 4 : mt->qpitch;
+   }
 
    for (unsigned level = mt->first_level; level <= mt->last_level; level++) {
       unsigned img_height;
