@@ -516,9 +516,9 @@ intel_miptree_choose_tiling(struct brw_context *brw,
     * "NOTE: 128BPE Format Color Buffer ( render target ) MUST be either TileX
     *  or Linear."
     * 128 bits per pixel translates to 16 bytes per pixel.  This is necessary
-    * all the way back to 965, but is explicitly permitted on Gen7.
+    * all the way back to 965, but is explicitly permitted on Gen7+.
     */
-   if (brw->gen != 7 && mt->cpp >= 16)
+   if (brw->gen < 7 && mt->cpp >= 16)
       return I915_TILING_X;
 
    /* From the Ivy Bridge PRM, Vol4 Part1 2.12.2.1 (SURFACE_STATE for most
