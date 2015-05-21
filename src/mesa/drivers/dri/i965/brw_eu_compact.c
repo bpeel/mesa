@@ -983,6 +983,9 @@ brw_try_compact_instruction(const struct brw_device_info *devinfo,
       }
    }
 
+   if (brw_inst_eot(devinfo, src))
+      return false;
+
    bool is_immediate =
       brw_inst_src0_reg_file(devinfo, src) == BRW_IMMEDIATE_VALUE ||
       brw_inst_src1_reg_file(devinfo, src) == BRW_IMMEDIATE_VALUE;
