@@ -1656,10 +1656,10 @@ vec4_generator::generate_code(const cfg_t *cfg)
          fprintf(stderr, "Native code for %s program %d:\n", stage_name,
                  prog->Id);
       }
-      fprintf(stderr, "%s vec4 shader: %d instructions. %d loops. Compacted %d to %d"
+      fprintf(stderr, "%s vec4 shader: %d instructions. %u cycles. %d loops. Compacted %d to %d"
                       " bytes (%.0f%%)\n",
               stage_abbrev,
-              before_size / 16, loop_count, before_size, after_size,
+              before_size / 16, cfg->cycle_count, loop_count, before_size, after_size,
               100.0f * (before_size - after_size) / before_size);
 
       dump_assembly(p->store, annotation.ann_count, annotation.ann,
@@ -1668,9 +1668,10 @@ vec4_generator::generate_code(const cfg_t *cfg)
    }
 
    compiler->shader_debug_log(log_data,
-                              "%s vec4 shader: %d inst, %d loops, "
+                              "%s vec4 shader: %d inst, %u cycles, %d loops, "
                               "compacted %d to %d bytes.\n",
-                              stage_abbrev, before_size / 16, loop_count,
+                              stage_abbrev, before_size / 16,
+                              cfg->cycle_count, loop_count,
                               before_size, after_size);
 }
 
