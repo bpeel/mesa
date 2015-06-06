@@ -1411,15 +1411,27 @@ fs_instruction_scheduler::choose_instruction_to_schedule()
    schedule_node *chosen = NULL;
 
    if (mode == SCHEDULE_PRE || mode == SCHEDULE_POST) {
-      int chosen_time = 0;
+      int chosen_unblocked_time = 0, chosen_delay = 0;
 
-      /* Of the instructions ready to execute or the closest to
-       * being ready, choose the oldest one.
+      /* First, find the earliest instruction we can possibly schedule. Then,
+       * if there are multiple instructions that we can schedule at the same
+       * time, choose the thing with the longest critical path. The idea here
+       * is to try not to lengthen already larger critical path lengths, but
+       * if we can, we should first schedule instructions that we can fit in
+       * before the instruction with the longest critical path. There might be
+       * some cases where we still bump the critical path instruction, but
+       * this seems unlikely, given that most instructions have the same issue
+       * time and most latencies are a multiple of the issue time.
        */
       foreach_in_list(schedule_node, n, &instructions) {
-         if (!chosen || n->unblocked_time < chosen_time) {
+         int unblocked_time = MAX2(n->unblocked_time, time);
+         if (!chosen ||
+             unblocked_time < chosen_unblocked_time ||
+             (unblocked_time == chosen_unblocked_time &&
+              n->delay > chosen_delay)) {
             chosen = n;
-            chosen_time = n->unblocked_time;
+            chosen_unblocked_time = unblocked_time;
+            chosen_delay = n->delay;
          }
       }
    } else {
