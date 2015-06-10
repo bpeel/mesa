@@ -436,6 +436,8 @@ public:
          this->reads_remaining = rzalloc_array(mem_ctx, int, grf_count);
 
          this->hw_reads_remaining = rzalloc_array(mem_ctx, int, hw_reg_count);
+
+         this->blocked_reads_remaining = rzalloc_array(mem_ctx, int, grf_count);
       } else {
          this->reg_pressure_in = NULL;
          this->livein = NULL;
@@ -444,6 +446,7 @@ public:
          this->written = NULL;
          this->reads_remaining = NULL;
          this->hw_reads_remaining = NULL;
+         this->blocked_reads_remaining = NULL;
       }
    }
 
@@ -473,6 +476,7 @@ public:
    virtual void count_reads_remaining(backend_instruction *inst) = 0;
    virtual void setup_liveness(cfg_t *cfg) = 0;
    virtual void update_register_pressure(backend_instruction *inst) = 0;
+   virtual void update_unblocked(backend_instruction *inst) = 0;
    virtual int get_register_pressure_benefit(backend_instruction *inst) = 0;
 
    void schedule_instructions(bblock_t *block);
@@ -532,6 +536,13 @@ public:
     */
 
    int *hw_reads_remaining;
+
+   /*
+    * How many reads aren't ready for scheduling because they're blocked by
+    * something else which hasn't been scheduled yet.
+    */
+
+   int *blocked_reads_remaining;
 };
 
 class fs_instruction_scheduler : public instruction_scheduler
@@ -549,7 +560,9 @@ public:
    void count_reads_remaining(backend_instruction *inst);
    void setup_liveness(cfg_t *cfg);
    void update_register_pressure(backend_instruction *inst);
+   void update_unblocked(backend_instruction *inst);
    int get_register_pressure_benefit(backend_instruction *inst);
+   int get_potential_pressure_benefit(fs_inst *inst);
 };
 
 fs_instruction_scheduler::fs_instruction_scheduler(fs_visitor *v,
@@ -585,6 +598,7 @@ fs_instruction_scheduler::count_reads_remaining(backend_instruction *be)
 
       if (inst->src[i].file == GRF) {
          reads_remaining[inst->src[i].reg]++;
+         blocked_reads_remaining[inst->src[i].reg]++;
       } else if (inst->src[i].file == HW_REG &&
                inst->src[i].fixed_hw_reg.file == BRW_GENERAL_REGISTER_FILE) {
          if (inst->src[i].fixed_hw_reg.nr >= hw_reg_count)
@@ -690,6 +704,24 @@ fs_instruction_scheduler::update_register_pressure(backend_instruction *be)
    }
 }
 
+void
+fs_instruction_scheduler::update_unblocked(backend_instruction *be)
+{
+   fs_inst *inst = (fs_inst *) be;
+
+   if (!blocked_reads_remaining)
+      return;
+
+   for (int i = 0; i < inst->sources; i++) {
+      if (is_src_duplicate(inst, i))
+          continue;
+
+      if (inst->src[i].file == GRF) {
+         blocked_reads_remaining[inst->src[i].reg]--;
+      }
+   }
+}
+
 int
 fs_instruction_scheduler::get_register_pressure_benefit(backend_instruction *be)
 {
@@ -731,6 +763,24 @@ fs_instruction_scheduler::get_register_pressure_benefit(backend_instruction *be)
    return benefit;
 }
 
+int
+fs_instruction_scheduler::get_potential_pressure_benefit(fs_inst *inst)
+{
+   int benefit = 0;
+
+   for (int i = 0; i < inst->sources; i++) {
+      if (is_src_duplicate(inst, i))
+         continue;
+
+      if (inst->src[i].file == GRF &&
+          !BITSET_TEST(liveout[block_idx], inst->src[i].reg) &&
+          blocked_reads_remaining[inst->src[i].reg] == 0)
+         benefit += v->alloc.sizes[inst->src[i].reg];
+   }
+
+   return benefit;
+}
+
 class vec4_instruction_scheduler : public instruction_scheduler
 {
 public:
@@ -743,6 +793,7 @@ public:
    void count_reads_remaining(backend_instruction *inst);
    void setup_liveness(cfg_t *cfg);
    void update_register_pressure(backend_instruction *inst);
+   void update_unblocked(backend_instruction *inst);
    int get_register_pressure_benefit(backend_instruction *inst);
 };
 
@@ -765,6 +816,11 @@ vec4_instruction_scheduler::setup_liveness(cfg_t *cfg)
 
 void
 vec4_instruction_scheduler::update_register_pressure(backend_instruction *be)
+{
+}
+
+void
+vec4_instruction_scheduler::update_unblocked(backend_instruction *be)
 {
 }
 
@@ -1466,6 +1522,27 @@ fs_instruction_scheduler::choose_instruction_to_schedule()
             continue;
          }
 
+         /* If the register benefits are equal, choose the instruction with
+          * the highest *potential* benefit, which means the highest benefit
+          * including reads for which we won't end the live range right away,
+          * but all the remaining reads are already scheduled. The motivation
+          * for this is texture instruction, which when scheduled will usually
+          * create a live range which doesn't end until 4 instructions are
+          * scheduled.  We want to schedule those instructions as soon as
+          * they're available, but just considering the register pressure
+          * won't help since no instruction by itself ends the range.
+          */
+         int potential_pressure_benefit =
+            get_potential_pressure_benefit((fs_inst *)n->inst);
+         int chosen_potential_benefit =
+            get_potential_pressure_benefit((fs_inst *)chosen->inst);
+         if (potential_pressure_benefit > chosen_potential_benefit) {
+            chosen = n;
+            continue;
+         } else if (potential_pressure_benefit < chosen_potential_benefit) {
+            continue;
+         }
+
          if (mode == SCHEDULE_PRE_LIFO) {
             /* Prefer instructions that recently became available for
              * scheduling.  These are the things that are most likely to
@@ -1635,6 +1712,7 @@ instruction_scheduler::schedule_instructions(bblock_t *block)
             if (debug) {
                fprintf(stderr, "\t\tnow available\n");
             }
+            update_unblocked(child->inst);
             instructions.push_head(child);
          }
       }
@@ -1698,6 +1776,8 @@ instruction_scheduler::run(cfg_t *cfg)
                 grf_count * sizeof(*reads_remaining));
          memset(hw_reads_remaining, 0,
                 hw_reg_count * sizeof(*hw_reads_remaining));
+         memset(blocked_reads_remaining, 0,
+                grf_count * sizeof(*blocked_reads_remaining));
          memset(written, 0, grf_count * sizeof(*written));
 
          foreach_inst_in_block(fs_inst, inst, block)
