@@ -4927,7 +4927,6 @@ fs_visitor::allocate_registers()
    static const enum instruction_scheduler_mode pre_modes[] = {
       SCHEDULE_PRE,
       SCHEDULE_PRE_NON_LIFO,
-      SCHEDULE_PRE_LIFO,
    };
 
    /* Try each scheduling heuristic to see if it can successfully register
