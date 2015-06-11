@@ -173,7 +173,11 @@ public:
 
    bool opt_sampler_eot();
    bool virtual_grf_interferes(int a, int b);
-   void schedule_instructions(instruction_scheduler_mode mode);
+
+   /* returns the maximum register pressure for before register allocation */
+   int schedule_instructions(int reg_pressure_threshold,
+                             instruction_scheduler_mode mode);
+
    void insert_gen4_send_dependency_workarounds();
    void insert_gen4_pre_send_dependency_workarounds(bblock_t *block,
                                                     fs_inst *inst);

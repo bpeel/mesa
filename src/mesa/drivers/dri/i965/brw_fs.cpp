@@ -4924,17 +4924,23 @@ fs_visitor::allocate_registers()
 {
    bool allocated_without_spills;
 
-   static const enum instruction_scheduler_mode pre_modes[] = {
-      SCHEDULE_PRE,
-      SCHEDULE_PRE_NON_LIFO,
-   };
+   unsigned reg_pressure_threshold = 124;
+   unsigned max_reg_pressure = 200;
+   unsigned prev_max_reg_pressure;
 
-   /* Try each scheduling heuristic to see if it can successfully register
-    * allocate without spilling.  They should be ordered by decreasing
-    * performance but increasing likelihood of allocating.
+   /* the number of times we decreased the threshold and the actual register
+    * pressure didn't decrease
     */
-   for (unsigned i = 0; i < ARRAY_SIZE(pre_modes); i++) {
-      schedule_instructions(pre_modes[i]);
+   unsigned num_missed = 0; 
+   do {
+      prev_max_reg_pressure = max_reg_pressure;
+      max_reg_pressure = schedule_instructions(reg_pressure_threshold,
+                                               SCHEDULE_PRE);
+
+      if (max_reg_pressure >= prev_max_reg_pressure)
+         num_missed++;
+      else
+         num_missed = 0;
 
       if (0) {
          assign_regs_trivial();
@@ -4942,9 +4948,9 @@ fs_visitor::allocate_registers()
       } else {
          allocated_without_spills = assign_regs(false);
       }
-      if (allocated_without_spills)
-         break;
-   }
+
+      reg_pressure_threshold -= 8;
+   } while(!allocated_without_spills && num_missed < 8);
 
    if (!allocated_without_spills) {
       /* We assume that any spilling is worse than just dropping back to
@@ -4980,7 +4986,7 @@ fs_visitor::allocate_registers()
    if (failed)
       return;
 
-   schedule_instructions(SCHEDULE_POST);
+   schedule_instructions(0, SCHEDULE_POST);
 
    if (last_scratch > 0)
       prog_data->total_scratch = brw_get_scratch_size(last_scratch);
