@@ -4953,20 +4953,11 @@ fs_visitor::allocate_registers()
    } while(!allocated_without_spills && num_missed < 8);
 
    if (!allocated_without_spills) {
-      /* We assume that any spilling is worse than just dropping back to
-       * SIMD8.  There's probably actually some intermediate point where
-       * SIMD16 with a couple of spills is still better.
-       */
-      if (dispatch_width == 16) {
-         fail("Failure to register allocate.  Reduce number of "
-              "live scalar values to avoid this.");
-      } else {
-         compiler->shader_perf_log(log_data,
-                                   "%s shader triggered register spilling.  "
-                                   "Try reducing the number of live scalar "
-                                   "values to improve performance.\n",
-                                   stage_name);
-      }
+      compiler->shader_perf_log(log_data,
+                                "%s shader triggered register spilling.  "
+                                "Try reducing the number of live scalar "
+                                "values to improve performance.\n",
+                                stage_name);
 
       /* Since we're out of heuristics, just go spill registers until we
        * get an allocation.
@@ -4987,6 +4978,10 @@ fs_visitor::allocate_registers()
       return;
 
    schedule_instructions(0, SCHEDULE_POST);
+
+   if (dispatch_width == 16 && cfg->cycle_count > 2 * simd8_cycles) {
+      fail("Failure to schedule SIMD16 advantageously");
+   }
 
    if (last_scratch > 0)
       prog_data->total_scratch = brw_get_scratch_size(last_scratch);
@@ -5212,6 +5207,7 @@ brw_wm_fs_emit(struct brw_context *brw,
       if (!v.simd16_unsupported) {
          /* Try a SIMD16 compile */
          v2.import_uniforms(&v);
+         v2.simd8_cycles = v.cfg->cycle_count;
          if (!v2.run_fs(brw->use_rep_send)) {
             perf_debug("SIMD16 shader failed to compile: %s", v2.fail_msg);
          } else {

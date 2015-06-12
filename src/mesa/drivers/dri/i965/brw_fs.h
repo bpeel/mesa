@@ -364,6 +364,8 @@ public:
    bool simd16_unsupported;
    char *no16_msg;
 
+   unsigned simd8_cycles;
+
    /* Result of last visit() method. Still used by emit_texture() */
    fs_reg result;
 
