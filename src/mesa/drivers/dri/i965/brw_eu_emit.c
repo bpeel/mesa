@@ -506,6 +506,30 @@ brw_set_src1(struct brw_codegen *p, brw_inst *inst, struct brw_reg reg)
    }
 }
 
+static void
+brw_inst_set_extended_function_control(const struct brw_device_info *devinfo,
+                                       brw_inst *inst,
+                                       uint16_t value)
+{
+   static const int bits[] = {
+      67, 64,
+      83, 80,
+      88, 85,
+      94, 91
+   };
+   int i, part_size;
+
+   assert(devinfo->gen >= 9);
+
+   for (i = 0; i < ARRAY_SIZE(bits); i += 2) {
+      part_size = bits[i] - bits[i + 1] + 1;
+      brw_inst_set_bits(inst,
+                        bits[i], bits[i + 1],
+                        value & ((1 << part_size) - 1));
+      value >>= part_size;
+   }
+}
+
 /**
  * Set the Message Descriptor and Extended Message Descriptor fields
  * for SEND messages.
@@ -537,6 +561,8 @@ brw_set_message_descriptor(struct brw_codegen *p,
    unsigned opcode = brw_inst_opcode(devinfo, inst);
    if (opcode == BRW_OPCODE_SEND || opcode == BRW_OPCODE_SENDC) {
       brw_inst_set_sfid(devinfo, inst, sfid);
+      if (devinfo->gen >= 9)
+         brw_inst_set_extended_function_control(devinfo, inst, 0);
    }
 
    brw_inst_set_mlen(devinfo, inst, msg_length);
