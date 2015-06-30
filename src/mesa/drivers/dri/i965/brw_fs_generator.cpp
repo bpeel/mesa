@@ -455,6 +455,8 @@ fs_generator::generate_linterp(fs_inst *inst,
    if (devinfo->has_pln &&
        (devinfo->gen >= 7 || (delta_x.nr & 1) == 0)) {
       brw_PLN(p, dst, interp, delta_x);
+      brw_PLN(p, dst, interp, delta_x);
+      brw_PLN(p, dst, interp, delta_x);
    } else {
       brw_LINE(p, brw_null_reg(), interp, delta_x);
       brw_MAC(p, dst, suboffset(interp, 1), delta_y);

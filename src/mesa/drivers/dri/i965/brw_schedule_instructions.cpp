@@ -789,6 +789,10 @@ fs_instruction_scheduler::calculate_deps()
    foreach_in_list(schedule_node, n, &instructions) {
       fs_inst *inst = (fs_inst *)n->inst;
 
+      /* Schedule everything in order */
+      if (n->prev->prev != NULL)
+         add_dep((schedule_node *) n->prev, n);
+
       if (inst->opcode == FS_OPCODE_PLACEHOLDER_HALT ||
          inst->has_side_effects())
          add_barrier_deps(n);

@@ -3692,7 +3692,7 @@ fs_visitor::optimize()
       OPT(opt_redundant_discard_jumps);
       OPT(opt_saturate_propagation);
       OPT(opt_zero_samples);
-      OPT(register_coalesce);
+      //OPT(register_coalesce);
       OPT(compute_to_mrf);
       OPT(eliminate_find_live_channel);
 
@@ -3705,7 +3705,7 @@ fs_visitor::optimize()
 
    if (OPT(lower_load_payload)) {
       split_virtual_grfs();
-      OPT(register_coalesce);
+      //OPT(register_coalesce);
       OPT(compute_to_mrf);
       OPT(dead_code_eliminate);
    }

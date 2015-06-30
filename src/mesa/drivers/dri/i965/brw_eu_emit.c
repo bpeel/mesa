@@ -3225,8 +3225,8 @@ brw_pixel_interpolator_query(struct brw_codegen *p,
    const struct brw_device_info *devinfo = p->devinfo;
    struct brw_inst *insn = next_insn(p, BRW_OPCODE_SEND);
 
-   brw_set_dest(p, insn, dest);
-   brw_set_src0(p, insn, mrf);
+   brw_set_dest(p, insn, retype(dest, BRW_REGISTER_TYPE_UD));
+   brw_set_src0(p, insn, retype(mrf, BRW_REGISTER_TYPE_D));
    brw_set_message_descriptor(p, insn, GEN7_SFID_PIXEL_INTERPOLATOR,
                               msg_length, response_length,
                               false /* header is never present for PI */,

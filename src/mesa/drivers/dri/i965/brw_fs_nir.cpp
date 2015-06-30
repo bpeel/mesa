@@ -1468,12 +1468,14 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
       no16("interpolate_at_* not yet supported in SIMD16 mode.");
 
       fs_reg dst_xy = bld.vgrf(BRW_REGISTER_TYPE_F, 2);
+      fs_reg dst_xy2 = bld.vgrf(BRW_REGISTER_TYPE_F, 2);
 
       /* For most messages, we need one reg of ignored data; the hardware
        * requires mlen==1 even when there is no payload. in the per-slot
        * offset case, we'll replace this with the proper source data.
        */
       fs_reg src = vgrf(glsl_type::float_type);
+      fs_reg src2 = vgrf(glsl_type::float_type);
       int mlen = 1;     /* one reg unless overriden */
       fs_inst *inst;
 
@@ -1504,6 +1506,7 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
                             fs_reg(off_x | (off_y << 4)));
          } else {
             src = vgrf(glsl_type::ivec2_type);
+            src2 = vgrf(glsl_type::ivec2_type);
             fs_reg offset_src = retype(get_nir_src(instr->src[0]),
                                        BRW_REGISTER_TYPE_F);
             for (int i = 0; i < 2; i++) {
@@ -1534,6 +1537,17 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
             mlen = 2;
             inst = bld.emit(FS_OPCODE_INTERPOLATE_AT_PER_SLOT_OFFSET, dst_xy, src,
                             fs_reg(0u));
+
+            inst->mlen = mlen;
+            inst->regs_written = 2; /* 2 floats per slot returned */
+            inst->pi_noperspective = instr->variables[0]->var->data.interpolation ==
+               INTERP_QUALIFIER_NOPERSPECTIVE;
+
+            for (int i = 0; i < 2; i++)
+               bld.MOV(offset(src2, i), offset(src, i));
+
+            inst = bld.emit(FS_OPCODE_INTERPOLATE_AT_PER_SLOT_OFFSET, dst_xy2, src2,
+                            fs_reg(0u));
          }
          break;
       }
@@ -1551,7 +1565,11 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
          fs_reg src = interp_reg(instr->variables[0]->var->data.location, j);
          src.type = dest.type;
 
-         bld.emit(FS_OPCODE_LINTERP, dest, dst_xy, src);
+         if ((j & 1) == 0)
+            bld.emit(FS_OPCODE_LINTERP, dest, dst_xy, src);
+         else
+            bld.emit(FS_OPCODE_LINTERP, dest, dst_xy2, src);
+
          dest = offset(dest, 1);
       }
       break;

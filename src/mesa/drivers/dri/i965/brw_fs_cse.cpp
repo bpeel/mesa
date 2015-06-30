@@ -153,6 +153,9 @@ operands_match(const fs_inst *a, const fs_inst *b, bool *negate)
 static bool
 instructions_match(fs_inst *a, fs_inst *b, bool *negate)
 {
+   if (a->opcode == FS_OPCODE_INTERPOLATE_AT_PER_SLOT_OFFSET)
+      return false;
+
    return a->opcode == b->opcode &&
           a->force_writemask_all == b->force_writemask_all &&
           a->exec_size == b->exec_size &&
