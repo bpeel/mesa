@@ -1180,6 +1180,47 @@ get_image_atomic_op(nir_intrinsic_op op, const glsl_type *type)
    }
 }
 
+/* For most messages, we need one reg of ignored data; the hardware requires
+ * mlen==1 even when there is no payload. in the per-slot offset case, we'll
+ * replace this with the proper source data.
+ */
+static void
+setup_pixel_interpolater_instruction(fs_visitor *v,
+                                     nir_intrinsic_instr *instr,
+                                     fs_inst *inst,
+                                     int mlen = 1)
+{
+   inst->mlen = mlen;
+   /* 2 floats per slot returned */
+   inst->regs_written = 2 * v->dispatch_width / 8;
+   inst->pi_noperspective = instr->variables[0]->var->data.interpolation ==
+      INTERP_QUALIFIER_NOPERSPECTIVE;
+}
+
+static fs_reg
+get_num_samples_reg(fs_visitor *v)
+{
+   struct gl_program_parameter_list *params = v->prog->Parameters;
+   static const gl_state_index tokens[STATE_LENGTH] = {
+      STATE_NUM_SAMPLES
+   };
+   GLuint index = _mesa_add_state_reference(params, tokens);
+   unsigned i;
+
+   /* Try to find an existing copy of the uniform */
+   for (i = 0; i < v->uniforms; i++) {
+      if (v->stage_prog_data->param[i] ==
+          &v->prog->Parameters->ParameterValues[index][0])
+         goto found;
+   }
+
+   v->stage_prog_data->param[v->uniforms++] =
+      &v->prog->Parameters->ParameterValues[index][0];
+
+found:
+   return retype(fs_reg(UNIFORM, i), BRW_REGISTER_TYPE_UD);
+}
+
 void
 fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr)
 {
@@ -1584,27 +1625,81 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
 
       fs_reg dst_xy = bld.vgrf(BRW_REGISTER_TYPE_F, 2);
 
-      /* For most messages, we need one reg of ignored data; the hardware
-       * requires mlen==1 even when there is no payload. in the per-slot
-       * offset case, we'll replace this with the proper source data.
-       */
       fs_reg src = vgrf(glsl_type::float_type);
-      int mlen = 1;     /* one reg unless overriden */
       fs_inst *inst;
 
       switch (instr->intrinsic) {
       case nir_intrinsic_interp_var_at_centroid:
          inst = bld.emit(FS_OPCODE_INTERPOLATE_AT_CENTROID,
                          dst_xy, src, fs_reg(0u));
+         setup_pixel_interpolater_instruction(this, instr, inst);
          break;
 
       case nir_intrinsic_interp_var_at_sample: {
-         /* XXX: We should probably handle non-constant sample id's */
          nir_const_value *const_sample = nir_src_as_const_value(instr->src[0]);
-         assert(const_sample);
-         unsigned msg_data = const_sample ? const_sample->i[0] << 4 : 0;
-         inst = bld.emit(FS_OPCODE_INTERPOLATE_AT_SAMPLE, dst_xy, src,
-                         fs_reg(msg_data));
+
+         if (const_sample) {
+            unsigned msg_data = const_sample->i[0] << 4;
+
+            inst = bld.emit(FS_OPCODE_INTERPOLATE_AT_SAMPLE, dst_xy, src,
+                            fs_reg(msg_data));
+
+            setup_pixel_interpolater_instruction(this, instr, inst);
+         } else {
+            fs_reg sample_src = retype(get_nir_src(instr->src[0]),
+                                       BRW_REGISTER_TYPE_UD);
+            fs_reg sample_id_reg;
+
+            if (nir_src_is_dynamically_uniform(instr->src[0])) {
+               sample_id_reg = vgrf(glsl_type::uint_type);
+               bld.SHL(sample_id_reg, sample_src, fs_reg(4u));
+               sample_id_reg = bld.emit_uniformize(sample_id_reg);
+               inst = bld.emit(FS_OPCODE_INTERPOLATE_AT_SAMPLE, dst_xy, src,
+                               sample_id_reg);
+               setup_pixel_interpolater_instruction(this, instr, inst);
+            } else {
+               /* Make a loop that sends a message to the pixel interpolator
+                * for each possible sample number so that each individual
+                * message will be dynamically uniform. The number of samples
+                * is determined by accessing the STATE_NUM_SAMPLES state var.
+                */
+               fs_reg i_reg = vgrf(glsl_type::uint_type);
+               fs_reg sample_id_reg = vgrf(glsl_type::uint_type);
+               fs_reg num_samples_reg = get_num_samples_reg(this);
+
+               bld.ADD(retype(i_reg, BRW_REGISTER_TYPE_D),
+                       retype(num_samples_reg, BRW_REGISTER_TYPE_D),
+                       fs_reg(-1));
+
+               bld.emit(BRW_OPCODE_DO);
+
+               bld.CMP(bld.null_reg_ud(),
+                       sample_src, i_reg,
+                       BRW_CONDITIONAL_EQ);
+               bld.IF(BRW_PREDICATE_NORMAL);
+               bld.SHL(sample_id_reg, i_reg, fs_reg(4u));
+               sample_id_reg = bld.emit_uniformize(sample_id_reg);
+               inst = bld.emit(FS_OPCODE_INTERPOLATE_AT_SAMPLE, dst_xy, src,
+                               sample_id_reg);
+               setup_pixel_interpolater_instruction(this, instr, inst);
+               bld.emit(BRW_OPCODE_ENDIF);
+
+               /* The conditional flag on instructions other than CMP* compare
+                * the *result* of the operation to zero rather than comparing
+                * the two sources.
+                */
+               set_condmod(BRW_CONDITIONAL_GE,
+                           bld.ADD(retype(i_reg, BRW_REGISTER_TYPE_D),
+                                   retype(i_reg, BRW_REGISTER_TYPE_D),
+                                   fs_reg(-1)));
+
+               /* The predicate means that the loop will continue if i is now
+                * >= 0
+                */
+               set_predicate(BRW_PREDICATE_NORMAL, bld.emit(BRW_OPCODE_WHILE));
+            }
+         }
+
          break;
       }
 
@@ -1617,6 +1712,7 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
 
             inst = bld.emit(FS_OPCODE_INTERPOLATE_AT_SHARED_OFFSET, dst_xy, src,
                             fs_reg(off_x | (off_y << 4)));
+            setup_pixel_interpolater_instruction(this, instr, inst);
          } else {
             src = vgrf(glsl_type::ivec2_type);
             fs_reg offset_src = retype(get_nir_src(instr->src[0]),
@@ -1646,9 +1742,12 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
                            bld.SEL(offset(src, bld, i), itemp, fs_reg(7)));
             }
 
-            mlen = 2 * dispatch_width / 8;
             inst = bld.emit(FS_OPCODE_INTERPOLATE_AT_PER_SLOT_OFFSET, dst_xy, src,
                             fs_reg(0u));
+            setup_pixel_interpolater_instruction(this,
+                                                 instr,
+                                                 inst,
+                                                 2 * dispatch_width / 8);
          }
          break;
       }
@@ -1656,12 +1755,6 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
       default:
          unreachable("Invalid intrinsic");
       }
-
-      inst->mlen = mlen;
-      /* 2 floats per slot returned */
-      inst->regs_written = 2 * dispatch_width / 8;
-      inst->pi_noperspective = instr->variables[0]->var->data.interpolation ==
-                               INTERP_QUALIFIER_NOPERSPECTIVE;
 
       for (unsigned j = 0; j < instr->num_components; j++) {
          fs_reg src = interp_reg(instr->variables[0]->var->data.location, j);

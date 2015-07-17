@@ -388,6 +388,8 @@ brw_link_shader(struct gl_context *ctx, struct gl_shader_program *shProg)
       prog->nir = brw_create_nir(brw, shProg, prog, (gl_shader_stage) stage,
                                  is_scalar_shader_stage(compiler, stage));
 
+      brw_add_interpolate_at_sample_params(prog);
+
       _mesa_reference_program(ctx, &prog, NULL);
    }
 

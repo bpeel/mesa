@@ -144,6 +144,8 @@ brwProgramStringNotify(struct gl_context *ctx,
 
       prog->nir = brw_create_nir(brw, NULL, prog, MESA_SHADER_FRAGMENT, true);
 
+      brw_add_interpolate_at_sample_params(prog);
+
       brw_fs_precompile(ctx, NULL, prog);
       break;
    }
@@ -239,6 +241,58 @@ brw_add_texrect_params(struct gl_program *prog)
       };
 
       _mesa_add_state_reference(prog->Parameters, (gl_state_index *)tokens);
+   }
+}
+
+static bool
+find_interpolate_at_sample_in_block(nir_block *block,
+                                    void *data)
+{
+   nir_foreach_instr(block, instr) {
+      if (instr->type != nir_instr_type_intrinsic)
+         continue;
+
+      nir_intrinsic_instr *intrinsic_instr = nir_instr_as_intrinsic(instr);
+
+      if (intrinsic_instr->intrinsic != nir_intrinsic_interp_var_at_sample)
+         continue;
+
+      /* If the sample number is known to be dynamically uniform then
+       * the generator won't need the num_samples state.
+       */
+      if (nir_src_is_dynamically_uniform(intrinsic_instr->src[0]))
+         continue;
+
+      return false;
+   }
+
+   return true;
+}
+
+void
+brw_add_interpolate_at_sample_params(struct gl_program *prog)
+{
+   static const gl_state_index tokens[STATE_LENGTH] = {
+      STATE_NUM_SAMPLES
+   };
+
+   if (!prog->nir)
+      return;
+
+   /* If anything calls interpolateAtSample with a dynamically non-uniform
+    * sample ID then we need STATE_NUM_SAMPLES to be able to iterate over
+    * each possible value.
+    */
+   nir_foreach_overload(prog->nir, overload) {
+      if (overload->impl) {
+         bool found = !nir_foreach_block(overload->impl,
+                                         find_interpolate_at_sample_in_block,
+                                         ralloc_parent(overload->impl));
+         if (found) {
+            _mesa_add_state_reference(prog->Parameters, tokens);
+            break;
+         }
+      }
    }
 }
 
