@@ -2588,6 +2588,30 @@ fs_visitor::eliminate_find_live_channel()
 
       case SHADER_OPCODE_FIND_LIVE_CHANNEL:
          if (depth == 0) {
+            /* If the next instruction is using the result to broadcast to all
+             * of the channels (very likely) then we can replace the source in
+             * that with a constant too. Ideally this would automatically
+             * happen via constant copy propagation, but that doesn't
+             * currently work because the write below doesn't cover the entire
+             * register.
+             */
+            fs_inst *broadcast = (fs_inst *) inst->next;
+            if (!broadcast->is_tail_sentinel() &&
+                broadcast->opcode == SHADER_OPCODE_BROADCAST &&
+                inst->dst.equals(broadcast->src[1])) {
+               broadcast->opcode = BRW_OPCODE_MOV;
+               broadcast->sources = 1;
+               broadcast->src[0] = component(broadcast->src[0], 0);
+
+               /* If the src and dst are the same then we can just completely
+                * remove the instruction.
+                */
+               if (broadcast->src[0].equals(broadcast->dst)) {
+                  __next = (fs_inst *) broadcast->next;
+                  broadcast->remove(block);
+               }
+            }
+
             inst->opcode = BRW_OPCODE_MOV;
             inst->src[0] = fs_reg(0);
             inst->sources = 1;
