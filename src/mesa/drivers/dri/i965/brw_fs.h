@@ -219,6 +219,7 @@ public:
    bool opt_saturate_propagation();
    bool opt_cmod_propagation();
    bool opt_zero_samples();
+   bool opt_ld_lz();
    void emit_unspill(bblock_t *block, fs_inst *inst, fs_reg reg,
                      uint32_t spill_offset, int count);
    void emit_spill(bblock_t *block, fs_inst *inst, fs_reg reg,

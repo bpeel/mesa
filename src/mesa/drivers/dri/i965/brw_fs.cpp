@@ -945,6 +945,7 @@ fs_visitor::implied_mrf_writes(fs_inst *inst)
    case FS_OPCODE_TXB:
    case SHADER_OPCODE_TXD:
    case SHADER_OPCODE_TXF:
+   case SHADER_OPCODE_TXF_LZ:
    case SHADER_OPCODE_TXF_CMS:
    case SHADER_OPCODE_TXF_CMS_W:
    case SHADER_OPCODE_TXF_MCS:
@@ -2363,6 +2364,100 @@ fs_visitor::opt_zero_samples()
          inst->mlen -= inst->exec_size / 8;
          progress = true;
       }
+   }
+
+   if (progress)
+      invalidate_live_intervals();
+
+   return progress;
+}
+
+static bool
+lod_source_is_zero(const fs_inst *send_inst)
+{
+   int reg_offset = send_inst->exec_size / 8 * 2 + send_inst->header_size;
+   const fs_reg src = byte_offset(send_inst->src[0], reg_offset * 32);
+
+   /* Look for the last instruction that writes to the source */
+   foreach_inst_in_block_reverse_starting_from(const fs_inst, inst, send_inst) {
+      if (inst->overwrites_reg(src)) {
+         return (inst->opcode == SHADER_OPCODE_LOAD_PAYLOAD &&
+                 inst->src[inst->header_size + 2].is_zero());
+      }
+   }
+
+   return false;
+}
+
+/**
+ * Replace LD sample messages that have a zero LOD with LD_LZ. This
+ * instruction is available since Gen9. It would help for doing texelFetch
+ * when passing three coordinates because then the LOD can be skipped.
+ */
+bool
+fs_visitor::opt_ld_lz()
+{
+   if (devinfo->gen < 9)
+      return false;
+
+   bool progress = false;
+
+   foreach_block_and_inst(block, fs_inst, inst, cfg) {
+      if (inst->opcode != SHADER_OPCODE_TXF)
+         continue;
+
+      /* If the LOD parameter is not sent or is a constant zero then we can
+       * change the instruction.
+       */
+      bool lod_included = (inst->mlen - inst->header_size >=
+                           inst->exec_size / 8 * 3);
+      if (lod_included && !lod_source_is_zero(inst))
+         continue;
+
+      inst->opcode = SHADER_OPCODE_TXF_LZ;
+
+      if (lod_included) {
+         inst->mlen -= inst->exec_size / 8;
+
+         /* If the r coordinate is included then we need a new LOAD_PAYLOAD
+          * instruction which has it in the right place.
+          */
+         if (inst->mlen - inst->header_size >= inst->exec_size / 8 * 3) {
+            const fs_builder ibld(this, block, inst);
+            fs_reg send_header = fs_reg(VGRF, alloc.allocate(inst->mlen),
+                                        BRW_REGISTER_TYPE_F);
+            int n_sources = ((inst->mlen - inst->header_size) *
+                             8 / inst->exec_size +
+                             inst->header_size);
+            fs_reg *new_sources = ralloc_array(mem_ctx, fs_reg, n_sources);
+
+            for (int i = 0; i < n_sources; i++) {
+               int j;
+               if (i >= inst->header_size + 2)
+                  j = i + 1;
+               else
+                  j = i;
+               new_sources[i] = offset(inst->src[0], ibld, j);
+            }
+
+            /* The LOAD_PAYLOAD helper is not used for the same reasons given
+             * in fs_visitor::opt_sample_eot.
+             */
+            fs_inst *new_load_payload =
+               new(mem_ctx) fs_inst(SHADER_OPCODE_LOAD_PAYLOAD,
+                                    inst->exec_size,
+                                    send_header,
+                                    new_sources,
+                                    n_sources);
+
+            new_load_payload->regs_written = inst->mlen;
+            new_load_payload->header_size = inst->header_size;
+            inst->insert_before(block, new_load_payload);
+            inst->src[0] = send_header;
+         }
+      }
+
+      progress = true;
    }
 
    if (progress)
@@ -3982,6 +4077,7 @@ lower_sampler_logical_send_gen7(const fs_builder &bld, fs_inst *inst, opcode op,
 
       coordinate_done = true;
       break;
+
    case SHADER_OPCODE_TXF_CMS:
    case SHADER_OPCODE_TXF_CMS_W:
    case SHADER_OPCODE_TXF_UMS:
@@ -5104,6 +5200,7 @@ fs_visitor::optimize()
       OPT(opt_redundant_discard_jumps);
       OPT(opt_saturate_propagation);
       OPT(opt_zero_samples);
+      OPT(opt_ld_lz);
       OPT(register_coalesce);
       OPT(compute_to_mrf);
       OPT(eliminate_find_live_channel);
