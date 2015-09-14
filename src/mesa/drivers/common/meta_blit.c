@@ -246,6 +246,45 @@ setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
 }
 
 static void
+add_merges(char **source,
+           int sample_num)
+{
+   int changing_bits;
+   int changing_to_zero;
+   int next_bit;
+   int merge_sample;
+
+   if (sample_num < 1)
+      return;
+
+   changing_bits = (sample_num + 1) ^ sample_num;
+   changing_to_zero = changing_bits & sample_num;
+
+   while (true) {
+      next_bit = ffs(changing_to_zero);
+
+      if (next_bit == 0)
+         break;
+
+      next_bit--;
+
+      merge_sample = sample_num & (~0 << (next_bit + 1));
+
+      ralloc_asprintf_append(source,
+                             "   gvec4 sample_%d_%d = merge(sample_%d_%d, "
+                             "sample_%d_%d);\n",
+                             1 << (next_bit + 1),
+                             merge_sample,
+                             1 << next_bit,
+                             merge_sample,
+                             1 << next_bit,
+                             merge_sample + (1 << next_bit));
+
+      changing_to_zero &= ~(1 << next_bit);
+   }
+}
+
+static void
 setup_glsl_msaa_blit_shader(struct gl_context *ctx,
                             struct blit_state *blit,
                             const struct gl_framebuffer *drawFb,
@@ -468,7 +507,6 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
          merge_function = "";
       } else {
          int i;
-         int step;
 
          if (src_datatype == GL_INT || src_datatype == GL_UNSIGNED_INT) {
             merge_function =
@@ -495,18 +533,7 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
             ralloc_asprintf_append(&sample_resolve,
                                    "   gvec4 sample_1_%d = texelFetch(texSampler, i%s(texCoords), %d);\n",
                                    i, texcoord_type, i);
-         }
-         /* Now, merge each pair of samples, then merge each pair of those,
-          * etc.
-          */
-         for (step = 2; step <= samples; step *= 2) {
-            for (i = 0; i < samples; i += step) {
-               ralloc_asprintf_append(&sample_resolve,
-                                      "   gvec4 sample_%d_%d = merge(sample_%d_%d, sample_%d_%d);\n",
-                                      step, i,
-                                      step / 2, i,
-                                      step / 2, i + step / 2);
-            }
+            add_merges(&sample_resolve, i);
          }
 
          /* Scale the final result. */
