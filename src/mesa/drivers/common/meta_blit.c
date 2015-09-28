@@ -352,17 +352,27 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
        shader_index == BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_DEPTH_COPY ||
        shader_index == BLIT_MSAA_SHADER_2D_MULTISAMPLE_DEPTH_COPY) {
       char *sample_index;
-      const char *arb_sample_shading_extension_string;
+      const char *extra_extensions;
+      const char *tex_coords = "texCoords";
 
       if (dst_is_msaa) {
-         arb_sample_shading_extension_string = "#extension GL_ARB_sample_shading : enable";
          sample_index = "gl_SampleID";
          name = "depth MSAA copy";
+
+         if (ctx->Extensions.ARB_gpu_shader5 && samples >= 16) {
+            extra_extensions =
+               "#extension GL_ARB_sample_shading : enable\n"
+               "#extension GL_ARB_gpu_shader5 : enable\n";
+            /* See comment below for the color copy */
+            tex_coords = "interpolateAtOffset(texCoords, vec2(0.0))";
+         } else {
+            extra_extensions = "#extension GL_ARB_sample_shading : enable\n";
+         }
       } else {
-         /* Don't need that extension, since we're drawing to a single-sampled
-          * destination.
+         /* Don't need any extra extensions, since we're drawing to a
+          * single-sampled destination.
           */
-         arb_sample_shading_extension_string = "";
+         extra_extensions = "";
          /* From the GL 4.3 spec:
           *
           *     "If there is a multisample buffer (the value of SAMPLE_BUFFERS
@@ -399,27 +409,57 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
                                   "\n"
                                   "void main()\n"
                                   "{\n"
-                                  "   gl_FragDepth = texelFetch(texSampler, i%s(texCoords), %s).r;\n"
+                                  "   gl_FragDepth = texelFetch(texSampler, i%s(%s), %s).r;\n"
                                   "}\n",
-                                  arb_sample_shading_extension_string,
+                                  extra_extensions,
                                   sampler_array_suffix,
                                   texcoord_type,
                                   texcoord_type,
+                                  tex_coords,
                                   sample_index);
    } else {
       /* You can create 2D_MULTISAMPLE textures with 0 sample count (meaning 1
        * sample).  Yes, this is ridiculous.
        */
       char *sample_resolve;
-      const char *arb_sample_shading_extension_string;
+      const char *extra_extensions;
       const char *merge_function;
       name = ralloc_asprintf(mem_ctx, "%svec4 MSAA %s",
                              vec4_prefix,
                              dst_is_msaa ? "copy" : "resolve");
 
       if (dst_is_msaa) {
-         arb_sample_shading_extension_string = "#extension GL_ARB_sample_shading : enable";
-         sample_resolve = ralloc_asprintf(mem_ctx, "   out_color = texelFetch(texSampler, i%s(texCoords), gl_SampleID);", texcoord_type);
+         const char *tex_coords;
+
+         if (ctx->Extensions.ARB_gpu_shader5 && samples >= 16) {
+            /* If interpolateAtOffset is available then it will be used to
+             * force the interpolation to the center. This is required at
+             * least on Intel hardware because it is possible to have a sample
+             * position on the 0 x or y axis which means it will lie exactly
+             * on the pixel boundary. If we let the hardware interpolate the
+             * coordinates at one of these positions then it is possible for
+             * it to jump to a neighboring texel when converting to ints due
+             * to rounding errors. This is only done for >= 16x MSAA because
+             * it probably has some overhead. It is more likely that some
+             * hardware will use one of these problematic positions at 16x
+             * MSAA because in that case in D3D they are defined to be at
+             * these positions.
+             */
+            extra_extensions =
+               "#extension GL_ARB_sample_shading : enable\n"
+               "#extension GL_ARB_gpu_shader5 : enable\n";
+            tex_coords = "interpolateAtOffset(texCoords, vec2(0.0))";
+         } else {
+            extra_extensions = "#extension GL_ARB_sample_shading : enable\n";
+            tex_coords = "texCoords";
+         }
+
+         sample_resolve =
+            ralloc_asprintf(mem_ctx,
+                            "   out_color = texelFetch(texSampler, "
+                            "i%s(%s), gl_SampleID);",
+                            texcoord_type, tex_coords);
+
          merge_function = "";
       } else {
          int i;
@@ -434,7 +474,7 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
                "vec4 merge(vec4 a, vec4 b) { return (a + b); }\n";
          }
 
-         arb_sample_shading_extension_string = "";
+         extra_extensions = "";
 
          /* We're assuming power of two samples for this resolution procedure.
           *
@@ -502,7 +542,7 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
                                   "{\n"
                                   "%s\n" /* sample_resolve */
                                   "}\n",
-                                  arb_sample_shading_extension_string,
+                                  extra_extensions,
                                   vec4_prefix,
                                   vec4_prefix,
                                   sampler_array_suffix,
