@@ -82,6 +82,12 @@ public:
     * its children, or just the issue_time if it's a leaf node.
     */
    int delay;
+
+   /*
+    * The Sethi-Ullman number for this node, which is a lower bound on the
+    * number of registers required to schedule it.
+    */
+   int regs_required;
 };
 
 void
@@ -459,6 +465,7 @@ public:
    void run(cfg_t *cfg);
    void add_insts_from_block(bblock_t *block);
    void compute_delay(schedule_node *node);
+   void compute_regs_required(schedule_node *node);
    virtual void calculate_deps() = 0;
    virtual schedule_node *choose_instruction_to_schedule() = 0;
 
@@ -476,6 +483,7 @@ public:
    virtual void update_register_pressure(backend_instruction *inst) = 0;
    virtual void update_unblocked(backend_instruction *inst) = 0;
    virtual int get_register_pressure_benefit(backend_instruction *inst) = 0;
+   virtual int dst_size(schedule_node *n) = 0;
 
    void schedule_instructions(bblock_t *block);
 
@@ -567,6 +575,7 @@ public:
    void update_unblocked(backend_instruction *inst);
    int get_register_pressure_benefit(backend_instruction *inst);
    int get_potential_pressure_benefit(fs_inst *inst);
+   int dst_size(schedule_node *n);
 };
 
 fs_instruction_scheduler::fs_instruction_scheduler(fs_visitor *v,
@@ -773,6 +782,7 @@ public:
    void update_register_pressure(backend_instruction *inst);
    void update_unblocked(backend_instruction *inst);
    int get_register_pressure_benefit(backend_instruction *inst);
+   int dst_size(schedule_node *n);
 };
 
 vec4_instruction_scheduler::vec4_instruction_scheduler(vec4_visitor *v,
@@ -821,6 +831,7 @@ schedule_node::schedule_node(backend_instruction *inst,
    this->parent_count = 0;
    this->unblocked_time = 0;
    this->delay = 0;
+   this->regs_required = 0;
 
    /* We can't measure Gen6 timings directly but expect them to be much
     * closer to Gen7 than Gen4.
@@ -869,6 +880,95 @@ instruction_scheduler::compute_delay(schedule_node *n)
          n->delay = MAX2(n->delay, n->latency + n->children[i]->delay);
       }
    }
+}
+
+int
+fs_instruction_scheduler::dst_size(schedule_node *n)
+{
+   fs_inst *inst = (fs_inst *) n->inst;
+   if (inst->dst.file != GRF)
+      return 0;
+
+   return v->alloc.sizes[inst->dst.reg];
+}
+
+int
+vec4_instruction_scheduler::dst_size(schedule_node *n)
+{
+   return 0;
+}
+
+static int compare(const void *data1, const void *data2)
+{
+   const schedule_node *n1 = *(schedule_node **)data1;
+   const schedule_node *n2 = *(schedule_node **)data2;
+   return n1->regs_required - n2->regs_required;
+}
+
+/**
+ * Compute the Sethi-Ullman numbering for a node.
+ *
+ * The Sethi-Ullman numbering is a lower bound for the number of registers
+ * required to schedule a given node and all of its children in the DAG. Say
+ * that we've scheduled all of a node N's children optimally. We'll ignore any
+ * interactions between the children, and assume that each child can be
+ * scheduled independently and one after another; this is an approximation,
+ * only correct for expression trees without any barriers. We schedule the
+ * child that takes the least registers first (although in the final order,
+ * it'll be last because we're doing bottom-up scheduling), and order the rest
+ * by the number of registers they require. We have a list of children C_1,
+ * C_2, ... of node N that are in increasing order of registers required.
+ * Now, say that C_n+1 requires dst_size(C_n+1) more registers than C_n. The
+ * result of C_n+1 can be passed through C_n without increasing the number of
+ * registers required beyond what C_n+1 requires, so the number of registers
+ * required is the same as the number of registers that C_n+1 requires.
+ * Otherwise, the number of registers required will be regs_required(C_n) +
+ * dst_size(C_n+1). Furthermore, this number of registers required defines a
+ * new "high water mark" against which to compare the next instruction's
+ * registers required. Any later children have to pass their result through
+ * the high water mark, and doing so will increase the number of registers
+ * required, unless the new source C_m requires even more registers; then the
+ * high water mark resets to C_m. We don't need to store where the high water
+ * mark actually is, though; all we need to know is its current height (i.e.
+ * the current number of registers required) as we compare it to each child in
+ * turn.
+ */
+void
+instruction_scheduler::compute_regs_required(schedule_node *n)
+{
+   int num_children = 0;
+   for (int i = 0; i < n->child_count; i++) {
+      /* Assume dependencies with a latency of 0 are fake and ignore them */
+      if (n->child_latency[i] == 0)
+         continue;
+
+      num_children++;
+   }
+
+   if (num_children == 0) {
+      n->regs_required = dst_size(n);
+      return;
+   }
+
+   schedule_node *children[num_children];
+   int j = 0;
+   for (int i = 0; i < n->child_count; i++) {
+      if (n->child_latency[i] == 0)
+         continue;
+
+      children[j++] = n->children[i];
+   }
+
+   /* sort the children in increasing order of registers required */
+   qsort(children, num_children, sizeof(schedule_node *), compare);
+
+   n->regs_required = children[0]->regs_required;
+   for (int i = 1; i < num_children; i++) {
+      n->regs_required = MAX2(n->regs_required + dst_size(children[i]),
+                              children[i]->regs_required);
+   }
+
+   n->regs_required = MAX2(n->regs_required, dst_size(n));
 }
 
 /**
@@ -1444,27 +1544,47 @@ fs_instruction_scheduler::choose_instruction_to_schedule()
    schedule_node *chosen = NULL;
 
    if (post_reg_alloc || reg_pressure < pressure_threshold) {
-      int chosen_unblocked_time = 0, chosen_delay = 0;
-
-      /* First, find the earliest instruction we can possibly schedule. Then,
-       * if there are multiple instructions that we can schedule at the same
-       * time, choose the thing with the longest critical path. The idea here
-       * is to try not to lengthen already larger critical path lengths, but
-       * if we can, we should first schedule instructions that we can fit in
-       * before the instruction with the longest critical path. There might be
-       * some cases where we still bump the critical path instruction, but
-       * this seems unlikely, given that most instructions have the same issue
-       * time and most latencies are a multiple of the issue time.
-       */
       foreach_in_list(schedule_node, n, &instructions) {
-         int unblocked_time = MAX2(n->unblocked_time, time);
-         if (!chosen ||
-             unblocked_time < chosen_unblocked_time ||
-             (unblocked_time == chosen_unblocked_time &&
-              n->delay > chosen_delay)) {
+         if (!chosen) {
             chosen = n;
-            chosen_unblocked_time = unblocked_time;
-            chosen_delay = n->delay;
+            continue;
+         }
+
+         if (!post_reg_alloc) {
+            /* Penalize choices which require more registers than the
+             * threshold.
+             */
+            int excess = MAX2(0, reg_pressure + n->regs_required
+                                 - pressure_threshold);
+            int chosen_excess = MAX2(0, reg_pressure + chosen->regs_required
+                                        - pressure_threshold);
+            if (excess < chosen_excess) {
+               chosen = n;
+               continue;
+            } else if (excess > chosen_excess) {
+               continue;
+            }
+         }
+
+         /* First, find the earliest instruction we can possibly schedule.
+          * Then, if there are multiple instructions that we can schedule at
+          * the same time, choose the thing with the longest critical path.
+          * The idea here is to try not to lengthen already larger critical
+          * path lengths, but if we can, we should first schedule instructions
+          * that we can fit in before the instruction with the longest
+          * critical path. There might be some cases where we still bump the
+          * critical path instruction, but this seems unlikely, given that
+          * most instructions have the same issue time and most latencies are
+          * a multiple of the issue time.
+          */
+         int unblocked_time = MAX2(n->unblocked_time, time);
+         int chosen_unblocked_time = MAX2(chosen->unblocked_time, time);
+
+         if (unblocked_time < chosen_unblocked_time ||
+             (unblocked_time == chosen_unblocked_time &&
+              n->delay > chosen->delay)) {
+            chosen = n;
+            continue;
          }
       }
    } else {
@@ -1524,10 +1644,10 @@ fs_instruction_scheduler::choose_instruction_to_schedule()
           * large tree of lowered ubo loads, which appear reversed in the
           * instruction stream with respect to when they can be consumed).
           */
-         if (n->delay < chosen->delay) {
+         if (n->regs_required < chosen->regs_required) {
             chosen = n;
             continue;
-         } else if (n->delay > chosen->delay) {
+         } else if (n->regs_required > chosen->regs_required) {
             continue;
          }
 
@@ -1726,6 +1846,12 @@ instruction_scheduler::run(cfg_t *cfg)
 
       foreach_in_list(schedule_node, n, &instructions) {
          compute_delay(n);
+      }
+
+      if (!post_reg_alloc) {
+         foreach_in_list(schedule_node, n, &instructions) {
+            compute_regs_required(n);
+         }
       }
 
       schedule_instructions(block);
