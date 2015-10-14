@@ -428,6 +428,71 @@ use_rectlist(struct brw_context *brw, bool enable)
    brw->ctx.NewDriverState |= BRW_NEW_FRAGMENT_PROGRAM;
 }
 
+/**
+ * Individually fast clear each color buffer attachment. On previous gens this
+ * isn't required. The motivation for this comes from one line (which seems to
+ * be specific to SKL+). The list item is in section titled _MCS Buffer for
+ * Render Target(s)_
+ *
+ *   "Since only one RT is bound with a clear pass, only one RT can be cleared
+ *   at a time. To clear multiple RTs, multiple clear passes are required."
+ *
+ * The code follows the same idea as the resolve code which creates a fake FBO
+ * to avoid interfering with too much of the GL state.
+ */
+static void
+fast_clear_attachments(struct brw_context *brw,
+                       struct gl_framebuffer *fb,
+                       uint32_t fast_clear_buffers,
+                       struct rect fast_clear_rect)
+{
+   assert(brw->gen >= 9);
+   struct gl_context *ctx = &brw->ctx;
+   const GLuint old_fb = ctx->DrawBuffer->Name;
+   GLuint fbo;
+
+   _mesa_GenFramebuffers(1, &fbo);
+   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+   _mesa_DrawBuffer(GL_COLOR_ATTACHMENT0);
+
+   brw_fast_clear_init(brw);
+   use_rectlist(brw, true);
+   brw_bind_rep_write_shader(brw, (float *) fast_clear_color);
+
+   /* SKL+ also has a resolve mode for compressed render targets and thus more
+    * bits to let us select the type of resolve.  For fast clear resolves, it
+    * turns out we can use the same value as pre-SKL though.
+    */
+   set_fast_clear_op(brw, GEN7_PS_RENDER_TARGET_FAST_CLEAR_ENABLE);
+
+   for (unsigned buf = 0; buf < fb->_NumColorDrawBuffers; buf++) {
+      struct gl_renderbuffer *rb = fb->_ColorDrawBuffers[buf];
+      struct intel_renderbuffer *irb = intel_renderbuffer(rb);
+      int index = fb->_ColorDrawBufferIndexes[buf];
+
+      if ((fast_clear_buffers & (1 << index)) == 0)
+         continue;
+
+
+      _mesa_framebuffer_renderbuffer(ctx, ctx->DrawBuffer,
+                                     GL_COLOR_ATTACHMENT0, rb,
+                                     "meta fast clear (per-attachment)");
+
+      brw_draw_rectlist(ctx, &fast_clear_rect, MAX2(1, fb->MaxNumLayers));
+
+      /* Now set the mcs we cleared to INTEL_FAST_CLEAR_STATE_CLEAR so we'll
+       * resolve them eventually.
+       */
+      irb->mt->fast_clear_state = INTEL_FAST_CLEAR_STATE_CLEAR;
+   }
+
+   set_fast_clear_op(brw, 0);
+   use_rectlist(brw, false);
+
+   _mesa_DeleteFramebuffers(1, &fbo);
+   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, old_fb);
+}
+
 bool
 brw_meta_fast_clear(struct brw_context *brw, struct gl_framebuffer *fb,
                     GLbitfield buffers, bool partial_clear)
@@ -603,30 +668,33 @@ brw_meta_fast_clear(struct brw_context *brw, struct gl_framebuffer *fb,
    use_rectlist(brw, true);
 
    layers = MAX2(1, fb->MaxNumLayers);
-   if (fast_clear_buffers) {
+
+   if (brw->gen >= 9 && fast_clear_buffers) {
+      fast_clear_attachments(brw, fb, fast_clear_buffers, fast_clear_rect);
+   } else if (fast_clear_buffers) {
       _mesa_meta_drawbuffers_from_bitfield(fast_clear_buffers);
       brw_bind_rep_write_shader(brw, (float *) fast_clear_color);
       set_fast_clear_op(brw, GEN7_PS_RENDER_TARGET_FAST_CLEAR_ENABLE);
       brw_draw_rectlist(ctx, &fast_clear_rect, layers);
       set_fast_clear_op(brw, 0);
+
+      /* Now set the mcs we cleared to INTEL_FAST_CLEAR_STATE_CLEAR so we'll
+       * resolve them eventually.
+       */
+      for (unsigned buf = 0; buf < fb->_NumColorDrawBuffers; buf++) {
+         struct gl_renderbuffer *rb = fb->_ColorDrawBuffers[buf];
+         struct intel_renderbuffer *irb = intel_renderbuffer(rb);
+         int index = fb->_ColorDrawBufferIndexes[buf];
+
+         if ((1 << index) & fast_clear_buffers)
+            irb->mt->fast_clear_state = INTEL_FAST_CLEAR_STATE_CLEAR;
+      }
    }
 
    if (rep_clear_buffers) {
       _mesa_meta_drawbuffers_from_bitfield(rep_clear_buffers);
       brw_bind_rep_write_shader(brw, ctx->Color.ClearColor.f);
       brw_draw_rectlist(ctx, &clear_rect, layers);
-   }
-
-   /* Now set the mts we cleared to INTEL_FAST_CLEAR_STATE_CLEAR so we'll
-    * resolve them eventually.
-    */
-   for (unsigned buf = 0; buf < fb->_NumColorDrawBuffers; buf++) {
-      struct gl_renderbuffer *rb = fb->_ColorDrawBuffers[buf];
-      struct intel_renderbuffer *irb = intel_renderbuffer(rb);
-      int index = fb->_ColorDrawBufferIndexes[buf];
-
-      if ((1 << index) & fast_clear_buffers)
-         irb->mt->fast_clear_state = INTEL_FAST_CLEAR_STATE_CLEAR;
    }
 
  bail_to_meta:
