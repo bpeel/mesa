@@ -778,11 +778,23 @@ static int
 dest(FILE *file, const struct brw_device_info *devinfo, brw_inst *inst)
 {
    int err = 0;
+   int reg_file = brw_inst_dst_reg_file(devinfo, inst);
+
+   /* For SEND* Dst.RegFile[1] is implicitly set to 0 on Gen9+ */
+   if (devinfo->gen >= 9) {
+      switch (brw_inst_opcode(devinfo, inst)) {
+      case BRW_OPCODE_SEND:
+      case BRW_OPCODE_SENDC:
+      case BRW_OPCODE_SENDS:
+      case BRW_OPCODE_SENDSC:
+         reg_file &= ~2;
+         break;
+      }
+   }
 
    if (brw_inst_access_mode(devinfo, inst) == BRW_ALIGN_1) {
       if (brw_inst_dst_address_mode(devinfo, inst) == BRW_ADDRESS_DIRECT) {
-         err |= reg(file, brw_inst_dst_reg_file(devinfo, inst),
-                    brw_inst_dst_da_reg_nr(devinfo, inst));
+         err |= reg(file, reg_file, brw_inst_dst_da_reg_nr(devinfo, inst));
          if (err == -1)
             return 0;
          if (brw_inst_dst_da1_subreg_nr(devinfo, inst))
@@ -810,8 +822,7 @@ dest(FILE *file, const struct brw_device_info *devinfo, brw_inst *inst)
       }
    } else {
       if (brw_inst_dst_address_mode(devinfo, inst) == BRW_ADDRESS_DIRECT) {
-         err |= reg(file, brw_inst_dst_reg_file(devinfo, inst),
-                    brw_inst_dst_da_reg_nr(devinfo, inst));
+         err |= reg(file, reg_file, brw_inst_dst_da_reg_nr(devinfo, inst));
          if (err == -1)
             return 0;
          if (brw_inst_dst_da16_subreg_nr(devinfo, inst))
@@ -1122,6 +1133,19 @@ src0(FILE *file, const struct brw_device_info *devinfo, brw_inst *inst)
       return imm(file, devinfo, brw_inst_src0_reg_type(devinfo, inst), inst);
    } else if (brw_inst_access_mode(devinfo, inst) == BRW_ALIGN_1) {
       if (brw_inst_src0_address_mode(devinfo, inst) == BRW_ADDRESS_DIRECT) {
+         int subreg_nr = brw_inst_src0_da1_subreg_nr(devinfo, inst);
+
+         if (devinfo->gen >= 9) {
+            /* The subreg number is not used for SEND* instructions on Gen9 */
+            switch (brw_inst_opcode(devinfo, inst)) {
+            case BRW_OPCODE_SEND:
+            case BRW_OPCODE_SENDC:
+            case BRW_OPCODE_SENDS:
+            case BRW_OPCODE_SENDSC:
+               subreg_nr = 0;
+            }
+         }
+
          return src_da1(file,
                         devinfo,
                         brw_inst_opcode(devinfo, inst),
@@ -1131,7 +1155,7 @@ src0(FILE *file, const struct brw_device_info *devinfo, brw_inst *inst)
                         brw_inst_src0_width(devinfo, inst),
                         brw_inst_src0_hstride(devinfo, inst),
                         brw_inst_src0_da_reg_nr(devinfo, inst),
-                        brw_inst_src0_da1_subreg_nr(devinfo, inst),
+                        subreg_nr,
                         brw_inst_src0_abs(devinfo, inst),
                         brw_inst_src0_negate(devinfo, inst));
       } else {
@@ -1174,7 +1198,24 @@ src0(FILE *file, const struct brw_device_info *devinfo, brw_inst *inst)
 static int
 src1(FILE *file, const struct brw_device_info *devinfo, brw_inst *inst)
 {
-   if (brw_inst_src1_reg_file(devinfo, inst) == BRW_IMMEDIATE_VALUE) {
+   if (brw_inst_opcode(devinfo, inst) == BRW_OPCODE_SENDS ||
+       brw_inst_opcode(devinfo, inst) == BRW_OPCODE_SENDSC) {
+      /* The SENDS and SENDSC instructions only have a limited set of fields
+       * for src1.
+       */
+      return src_da1(file,
+                     devinfo,
+                     brw_inst_opcode(devinfo, inst),
+                     BRW_HW_REG_TYPE_F,
+                     brw_inst_src1_sends_reg_file(devinfo, inst),
+                     0, /* vstride */
+                     0, /* width */
+                     0, /* hstride */
+                     brw_inst_src1_sends_reg_nr(devinfo, inst),
+                     0, /* subreg nr */
+                     0, /* abs */
+                     0 /* negative */);
+   } else if (brw_inst_src1_reg_file(devinfo, inst) == BRW_IMMEDIATE_VALUE) {
       return imm(file, devinfo, brw_inst_src1_reg_type(devinfo, inst), inst);
    } else if (brw_inst_access_mode(devinfo, inst) == BRW_ALIGN_1) {
       if (brw_inst_src1_address_mode(devinfo, inst) == BRW_ADDRESS_DIRECT) {
@@ -1306,7 +1347,8 @@ brw_disassemble_inst(FILE *file, const struct brw_device_info *devinfo,
       string(file, " ");
       err |= control(file, "function", math_function,
                      brw_inst_math_function(devinfo, inst), NULL);
-   } else if (opcode != BRW_OPCODE_SEND && opcode != BRW_OPCODE_SENDC) {
+   } else if (opcode != BRW_OPCODE_SEND && opcode != BRW_OPCODE_SENDC &&
+              opcode != BRW_OPCODE_SENDS && opcode != BRW_OPCODE_SENDSC) {
       err |= control(file, "conditional modifier", conditional_modifier,
                      brw_inst_cond_modifier(devinfo, inst), NULL);
 
@@ -1395,7 +1437,8 @@ brw_disassemble_inst(FILE *file, const struct brw_device_info *devinfo,
       }
    }
 
-   if (opcode == BRW_OPCODE_SEND || opcode == BRW_OPCODE_SENDC) {
+   if (opcode == BRW_OPCODE_SEND || opcode == BRW_OPCODE_SENDC ||
+       opcode == BRW_OPCODE_SENDS || opcode == BRW_OPCODE_SENDSC) {
       enum brw_message_target sfid = brw_inst_sfid(devinfo, inst);
 
       if (brw_inst_src1_reg_file(devinfo, inst) != BRW_IMMEDIATE_VALUE) {
@@ -1620,6 +1663,8 @@ brw_disassemble_inst(FILE *file, const struct brw_device_info *devinfo,
          if (space)
             string(file, " ");
          format(file, "mlen %ld", brw_inst_mlen(devinfo, inst));
+         if (opcode == BRW_OPCODE_SENDS || opcode == BRW_OPCODE_SENDSC)
+            format(file, " emlen %ld", brw_inst_emlen(devinfo, inst));
          format(file, " rlen %ld", brw_inst_rlen(devinfo, inst));
       }
    }
@@ -1664,7 +1709,8 @@ brw_disassemble_inst(FILE *file, const struct brw_device_info *devinfo,
          err |= control(file, "acc write control", accwr,
                         brw_inst_acc_wr_control(devinfo, inst), &space);
       }
-      if (opcode == BRW_OPCODE_SEND || opcode == BRW_OPCODE_SENDC)
+      if (opcode == BRW_OPCODE_SEND || opcode == BRW_OPCODE_SENDC ||
+          opcode == BRW_OPCODE_SENDS || opcode == BRW_OPCODE_SENDSC)
          err |= control(file, "end of thread", end_of_thread,
                         brw_inst_eot(devinfo, inst), &space);
       if (space)
