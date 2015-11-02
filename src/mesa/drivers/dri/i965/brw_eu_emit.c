@@ -317,8 +317,11 @@ brw_set_src0(struct brw_codegen *p, brw_inst *inst, struct brw_reg reg)
 
    gen7_convert_mrf_to_grf(p, &reg);
 
-   if (devinfo->gen >= 6 && (brw_inst_opcode(devinfo, inst) == BRW_OPCODE_SEND ||
-                             brw_inst_opcode(devinfo, inst) == BRW_OPCODE_SENDC)) {
+   if (devinfo->gen >= 6 &&
+       (brw_inst_opcode(devinfo, inst) == BRW_OPCODE_SEND ||
+        brw_inst_opcode(devinfo, inst) == BRW_OPCODE_SENDC ||
+        brw_inst_opcode(devinfo, inst) == BRW_OPCODE_SENDS ||
+        brw_inst_opcode(devinfo, inst) == BRW_OPCODE_SENDSC)) {
       /* Any source modifiers or regions will be ignored, since this just
        * identifies the MRF/GRF to start reading the message contents from.
        * Check for some likely failures.
@@ -526,6 +529,19 @@ brw_set_src1(struct brw_codegen *p, brw_inst *inst, struct brw_reg reg)
    }
 }
 
+void
+brw_set_src1_sends(struct brw_codegen *p,
+                   brw_inst *inst,
+                   struct brw_reg reg)
+{
+   const struct brw_device_info *devinfo = p->devinfo;
+
+   assert(devinfo->gen >= 9);
+
+   brw_inst_set_src1_sends_reg_nr(devinfo, inst, reg.nr);
+   brw_inst_set_src1_sends_reg_file(devinfo, inst, reg.file);
+}
+
 /**
  * Set the Message Descriptor and Extended Message Descriptor fields
  * for SEND messages.
@@ -555,7 +571,8 @@ brw_set_message_descriptor(struct brw_codegen *p,
     * instead clobber the conditionalmod bits.
     */
    unsigned opcode = brw_inst_opcode(devinfo, inst);
-   if (opcode == BRW_OPCODE_SEND || opcode == BRW_OPCODE_SENDC) {
+   if (opcode == BRW_OPCODE_SEND || opcode == BRW_OPCODE_SENDC ||
+       opcode == BRW_OPCODE_SENDS || opcode == BRW_OPCODE_SENDSC) {
       brw_inst_set_sfid(devinfo, inst, sfid);
    }
 

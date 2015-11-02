@@ -154,6 +154,7 @@ F(src0_address_mode,    79,  79)
 F(src0_negate,          78,  78)
 F(src0_abs,             77,  77)
 /** @} */
+FC(sel_reg_32_desc,     77, 77, devinfo->gen >= 9)
 F8(src0_ia_subreg_nr,  /* 4+ */  76,  74, /* 8+ */  76,  73)
 F(src0_da_reg_nr,       76,  69)
 F(src0_da16_subreg_nr,  68,  68)
@@ -162,11 +163,14 @@ F(src0_da16_swiz_y,     67,  66)
 F(src0_da16_swiz_x,     65,  64)
 F(dst_address_mode,     63,  63)
 F(dst_hstride,          62,  61)
+FC(sel_reg_32_ex_desc,  61, 61, devinfo->gen >= 9)
 F8(dst_ia_subreg_nr,   /* 4+ */  60,  58, /* 8+ */  60,  57)
 F(dst_da_reg_nr,        60,  53)
 F(dst_da16_subreg_nr,   52,  52)
 F(dst_da1_subreg_nr,    52,  48)
 F(da16_writemask,       51,  48) /* Dst.ChanEn */
+FC(src1_sends_reg_nr,   51,  44, devinfo->gen >= 9)
+FC(src1_sends_reg_file, 36,  36, devinfo->gen >= 9)
 F8(src0_reg_type,      /* 4+ */  41,  39, /* 8+ */  46,  43)
 F8(src0_reg_file,      /* 4+ */  38,  37, /* 8+ */  42,  41)
 F8(dst_reg_type,       /* 4+ */  36,  34, /* 8+ */  40,  37)
@@ -383,6 +387,7 @@ FF(sfid,
    /* 7:   */  27,  24,
    /* 8:   */  27,  24)
 FC(base_mrf,   27,  24, devinfo->gen < 6);
+FC(emlen,      67,  64, devinfo->gen >= 9);
 /** @} */
 
 /**

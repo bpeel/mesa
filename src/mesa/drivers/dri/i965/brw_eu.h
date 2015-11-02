@@ -504,6 +504,9 @@ void brw_math_invert( struct brw_codegen *p,
 		      struct brw_reg src);
 
 void brw_set_src1(struct brw_codegen *p, brw_inst *insn, struct brw_reg reg);
+void brw_set_src1_sends(struct brw_codegen *p,
+                        brw_inst *inst,
+                        struct brw_reg reg);
 
 void brw_set_uip_jip(struct brw_codegen *p);
 

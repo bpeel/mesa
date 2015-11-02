@@ -69,6 +69,8 @@ clear_pad_bits(const struct brw_device_info *devinfo, brw_inst *inst)
 {
    if (brw_inst_opcode(devinfo, inst) != BRW_OPCODE_SEND &&
        brw_inst_opcode(devinfo, inst) != BRW_OPCODE_SENDC &&
+       brw_inst_opcode(devinfo, inst) != BRW_OPCODE_SENDS &&
+       brw_inst_opcode(devinfo, inst) != BRW_OPCODE_SENDSC &&
        brw_inst_opcode(devinfo, inst) != BRW_OPCODE_BREAK &&
        brw_inst_opcode(devinfo, inst) != BRW_OPCODE_CONTINUE &&
        brw_inst_src0_reg_file(devinfo, inst) != BRW_IMMEDIATE_VALUE &&
@@ -99,6 +101,8 @@ skip_bit(const struct brw_device_info *devinfo, brw_inst *src, int bit)
    /* sometimes these are pad bits. */
    if (brw_inst_opcode(devinfo, src) != BRW_OPCODE_SEND &&
        brw_inst_opcode(devinfo, src) != BRW_OPCODE_SENDC &&
+       brw_inst_opcode(devinfo, src) != BRW_OPCODE_SENDS &&
+       brw_inst_opcode(devinfo, src) != BRW_OPCODE_SENDSC &&
        brw_inst_opcode(devinfo, src) != BRW_OPCODE_BREAK &&
        brw_inst_opcode(devinfo, src) != BRW_OPCODE_CONTINUE &&
        brw_inst_src0_reg_file(devinfo, src) != BRW_IMMEDIATE_VALUE &&

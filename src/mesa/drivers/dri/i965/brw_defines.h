@@ -874,6 +874,8 @@ enum opcode {
    BRW_OPCODE_WAIT =	48,
    BRW_OPCODE_SEND =	49,
    BRW_OPCODE_SENDC =	50,
+   BRW_OPCODE_SENDS =	51,  /**< Gen9+ */
+   BRW_OPCODE_SENDSC =	52,  /**< Gen9+ */
    BRW_OPCODE_MATH =	56,  /**< Gen6+ */
    BRW_OPCODE_ADD =	64,
    BRW_OPCODE_MUL =	65,
