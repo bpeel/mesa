@@ -903,6 +903,7 @@ fs_visitor::implied_mrf_writes(fs_inst *inst)
    case SHADER_OPCODE_TXF:
    case SHADER_OPCODE_TXF_CMS:
    case SHADER_OPCODE_TXF_CMS_W:
+   case SHADER_OPCODE_TXF_CMS_SPLIT:
    case SHADER_OPCODE_TXF_MCS:
    case SHADER_OPCODE_TG4:
    case SHADER_OPCODE_TG4_OFFSET:
@@ -2283,7 +2284,8 @@ fs_visitor::opt_sampler_eot()
     * instruction because the message is later moved to be the extended
     * message so the header would end up in the wrong place.
     */
-   if (tex_inst->opcode == SHADER_OPCODE_TXF_CMS_W)
+   if (tex_inst->opcode == SHADER_OPCODE_TXF_CMS_SPLIT ||
+       tex_inst->opcode == SHADER_OPCODE_TXF_CMS_W)
       return false;
 
    /* If there's no header present, we need to munge the LOAD_PAYLOAD as well.
@@ -3850,6 +3852,7 @@ lower_sampler_logical_send_gen7(const fs_builder &bld, fs_inst *inst, opcode op,
       break;
    case SHADER_OPCODE_TXF_CMS:
    case SHADER_OPCODE_TXF_CMS_W:
+   case SHADER_OPCODE_TXF_CMS_SPLIT:
    case SHADER_OPCODE_TXF_UMS:
    case SHADER_OPCODE_TXF_MCS:
       if (op == SHADER_OPCODE_TXF_UMS || op == SHADER_OPCODE_TXF_CMS) {
@@ -3857,7 +3860,9 @@ lower_sampler_logical_send_gen7(const fs_builder &bld, fs_inst *inst, opcode op,
          length++;
       }
 
-      if (op == SHADER_OPCODE_TXF_CMS || op == SHADER_OPCODE_TXF_CMS_W) {
+      if (op == SHADER_OPCODE_TXF_CMS ||
+          op == SHADER_OPCODE_TXF_CMS_SPLIT ||
+          op == SHADER_OPCODE_TXF_CMS_W) {
          /* Data from the multisample control surface. */
          bld.MOV(retype(sources[length], BRW_REGISTER_TYPE_UD), mcs);
          length++;
@@ -3942,7 +3947,8 @@ lower_sampler_logical_send_gen7(const fs_builder &bld, fs_inst *inst, opcode op,
    inst->src[0] = src_payload;
    inst->src[1] = sampler;
 
-   if (inst->opcode == SHADER_OPCODE_TXF_CMS_W) {
+   if (inst->opcode == SHADER_OPCODE_TXF_CMS_SPLIT ||
+       inst->opcode == SHADER_OPCODE_TXF_CMS_W) {
       inst->src[2] = sample_index;
       inst->resize_sources(3);
    } else {
@@ -4088,7 +4094,10 @@ fs_visitor::lower_logical_sends()
          break;
 
       case SHADER_OPCODE_TXF_CMS_LOGICAL:
-         lower_sampler_logical_send(ibld, inst, SHADER_OPCODE_TXF_CMS);
+         lower_sampler_logical_send(ibld, inst,
+                                    devinfo->gen >= 9 ?
+                                    SHADER_OPCODE_TXF_CMS_SPLIT :
+                                    SHADER_OPCODE_TXF_CMS);
          break;
 
       case SHADER_OPCODE_TXF_CMS_W_LOGICAL:

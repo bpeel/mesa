@@ -349,6 +349,8 @@ brw_instruction_name(enum opcode op)
       return "txb_logical";
    case SHADER_OPCODE_TXF_CMS:
       return "txf_cms";
+   case SHADER_OPCODE_TXF_CMS_SPLIT:
+      return "txf_cms_split";
    case SHADER_OPCODE_TXF_CMS_LOGICAL:
       return "txf_cms_logical";
    case SHADER_OPCODE_TXF_CMS_W:
@@ -792,6 +794,7 @@ backend_instruction::is_tex() const
            opcode == SHADER_OPCODE_TXF ||
            opcode == SHADER_OPCODE_TXF_CMS ||
            opcode == SHADER_OPCODE_TXF_CMS_W ||
+           opcode == SHADER_OPCODE_TXF_CMS_SPLIT ||
            opcode == SHADER_OPCODE_TXF_UMS ||
            opcode == SHADER_OPCODE_TXF_MCS ||
            opcode == SHADER_OPCODE_TXL ||

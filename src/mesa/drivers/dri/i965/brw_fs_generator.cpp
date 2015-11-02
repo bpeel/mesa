@@ -743,6 +743,10 @@ fs_generator::generate_tex(fs_inst *inst,
          assert(devinfo->gen >= 9);
          msg_type = GEN9_SAMPLER_MESSAGE_SAMPLE_LD2DMS_W;
          break;
+      case SHADER_OPCODE_TXF_CMS_SPLIT:
+         assert(devinfo->gen >= 9);
+         msg_type = GEN7_SAMPLER_MESSAGE_SAMPLE_LD2DMS;
+         break;
       case SHADER_OPCODE_TXF_CMS:
          if (devinfo->gen >= 7)
             msg_type = GEN7_SAMPLER_MESSAGE_SAMPLE_LD2DMS;
@@ -959,7 +963,8 @@ fs_generator::generate_tex(fs_inst *inst,
        */
    }
 
-   if (inst->opcode == SHADER_OPCODE_TXF_CMS_W) {
+   if (inst->opcode == SHADER_OPCODE_TXF_CMS_SPLIT ||
+       inst->opcode == SHADER_OPCODE_TXF_CMS_W) {
       /* Move the payload to the extended message payload and use the normal
        * payload to represent the single sample index register.
        */
@@ -2071,6 +2076,7 @@ fs_generator::generate_code(const cfg_t *cfg, int dispatch_width)
       case SHADER_OPCODE_TXF:
       case SHADER_OPCODE_TXF_CMS:
       case SHADER_OPCODE_TXF_CMS_W:
+      case SHADER_OPCODE_TXF_CMS_SPLIT:
       case SHADER_OPCODE_TXF_UMS:
       case SHADER_OPCODE_TXF_MCS:
       case SHADER_OPCODE_TXL:
