@@ -851,7 +851,9 @@ has_unmapped_bits(const struct brw_device_info *devinfo, brw_inst *src)
 {
    /* EOT can only be mapped on a send if the src1 is an immediate */
    if ((brw_inst_opcode(devinfo, src) == BRW_OPCODE_SENDC ||
-        brw_inst_opcode(devinfo, src) == BRW_OPCODE_SEND) &&
+        brw_inst_opcode(devinfo, src) == BRW_OPCODE_SEND ||
+        brw_inst_opcode(devinfo, src) == BRW_OPCODE_SENDSC ||
+        brw_inst_opcode(devinfo, src) == BRW_OPCODE_SENDS) &&
        brw_inst_eot(devinfo, src))
       return true;
 
