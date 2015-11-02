@@ -666,8 +666,11 @@ fs_generator::generate_get_buffer_size(fs_inst *inst,
 }
 
 void
-fs_generator::generate_tex(fs_inst *inst, struct brw_reg dst, struct brw_reg src,
-                           struct brw_reg sampler_index)
+fs_generator::generate_tex(fs_inst *inst,
+                           struct brw_reg dst,
+                           struct brw_reg src,
+                           struct brw_reg sampler_index,
+                           struct brw_reg sample_index)
 {
    int msg_type = -1;
    int rlen = 4;
@@ -954,6 +957,24 @@ fs_generator::generate_tex(fs_inst *inst, struct brw_reg dst, struct brw_reg src
       /* visitor knows more than we do about the surface limit required,
        * so has already done marking.
        */
+   }
+
+   if (inst->opcode == SHADER_OPCODE_TXF_CMS_W) {
+      /* Move the payload to the extended message payload and use the normal
+       * payload to represent the single sample index register.
+       */
+      brw_set_src0(p, brw_last_inst, sample_index);
+      brw_inst_set_mlen(p->devinfo, brw_last_inst,
+                        inst->exec_size / 8);
+      brw_inst_set_emlen(p->devinfo,
+                         brw_last_inst,
+                         inst->mlen);
+      brw_set_src1_sends(p, brw_last_inst, src);
+
+      brw_inst_set_sel_reg_32_desc(p->devinfo, brw_last_inst, 0);
+      brw_inst_set_sel_reg_32_ex_desc(p->devinfo, brw_last_inst, 0);
+
+      brw_inst_set_opcode(p->devinfo, brw_last_inst, BRW_OPCODE_SENDS);
    }
 
    if (is_combined_send) {
@@ -2058,7 +2079,7 @@ fs_generator::generate_code(const cfg_t *cfg, int dispatch_width)
       case SHADER_OPCODE_TG4:
       case SHADER_OPCODE_TG4_OFFSET:
       case SHADER_OPCODE_SAMPLEINFO:
-	 generate_tex(inst, dst, src[0], src[1]);
+	 generate_tex(inst, dst, src[0], src[1], src[2]);
 	 break;
       case FS_OPCODE_DDX_COARSE:
       case FS_OPCODE_DDX_FINE:

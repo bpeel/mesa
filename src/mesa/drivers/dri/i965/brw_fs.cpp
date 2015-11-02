@@ -2279,6 +2279,13 @@ fs_visitor::opt_sampler_eot()
        tex_inst->opcode == SHADER_OPCODE_TG4_OFFSET)
       return false;
 
+   /* We can't add a header to instructions that are using the SENDS
+    * instruction because the message is later moved to be the extended
+    * message so the header would end up in the wrong place.
+    */
+   if (tex_inst->opcode == SHADER_OPCODE_TXF_CMS_W)
+      return false;
+
    /* If there's no header present, we need to munge the LOAD_PAYLOAD as well.
     * It's very likely to be the previous instruction.
     */
@@ -3845,9 +3852,7 @@ lower_sampler_logical_send_gen7(const fs_builder &bld, fs_inst *inst, opcode op,
    case SHADER_OPCODE_TXF_CMS_W:
    case SHADER_OPCODE_TXF_UMS:
    case SHADER_OPCODE_TXF_MCS:
-      if (op == SHADER_OPCODE_TXF_UMS ||
-          op == SHADER_OPCODE_TXF_CMS ||
-          op == SHADER_OPCODE_TXF_CMS_W) {
+      if (op == SHADER_OPCODE_TXF_UMS || op == SHADER_OPCODE_TXF_CMS) {
          bld.MOV(retype(sources[length], BRW_REGISTER_TYPE_UD), sample_index);
          length++;
       }
@@ -3930,13 +3935,19 @@ lower_sampler_logical_send_gen7(const fs_builder &bld, fs_inst *inst, opcode op,
 
    /* Generate the SEND. */
    inst->opcode = op;
-   inst->src[0] = src_payload;
-   inst->src[1] = sampler;
-   inst->resize_sources(2);
    inst->base_mrf = -1;
    inst->mlen = mlen;
    inst->header_size = header_size;
 
+   inst->src[0] = src_payload;
+   inst->src[1] = sampler;
+
+   if (inst->opcode == SHADER_OPCODE_TXF_CMS_W) {
+      inst->src[2] = sample_index;
+      inst->resize_sources(3);
+   } else {
+      inst->resize_sources(2);
+   }
    /* Message length > MAX_SAMPLER_MESSAGE_SIZE disallowed by hardware. */
    assert(inst->mlen <= MAX_SAMPLER_MESSAGE_SIZE);
 }
