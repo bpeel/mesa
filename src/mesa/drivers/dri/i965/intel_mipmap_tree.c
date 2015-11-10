@@ -35,6 +35,7 @@
 
 #include "brw_blorp.h"
 #include "brw_context.h"
+#include "brw_state.h"
 
 #include "main/enums.h"
 #include "main/fbobject.h"
@@ -264,6 +265,12 @@ intel_miptree_supports_non_msrt_fast_clear(struct brw_context *brw,
     */
    if (!brw->format_supported_as_render_target[mt->format])
       return false;
+
+   const uint32_t brw_format = brw_format_for_mesa_format(mt->format);
+   if (!brw_losslessly_compressible_format(brw, brw_format)) {
+      assert(brw->gen >= 9);
+      return false;
+   }
 
    return true;
 }
