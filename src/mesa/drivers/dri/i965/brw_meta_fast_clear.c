@@ -456,15 +456,7 @@ fast_clear_attachments(struct brw_context *brw,
 {
    assert(brw->gen >= 9);
    struct gl_context *ctx = &brw->ctx;
-   const GLuint old_fb = ctx->DrawBuffer->Name;
-   GLuint fbo;
 
-   _mesa_GenFramebuffers(1, &fbo);
-   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
-   _mesa_DrawBuffer(GL_COLOR_ATTACHMENT0);
-
-   brw_fast_clear_init(brw);
-   use_rectlist(brw, true);
    brw_bind_rep_write_shader(brw, (float *) fast_clear_color);
 
    /* SKL+ also has a resolve mode for compressed render targets and thus more
@@ -473,32 +465,24 @@ fast_clear_attachments(struct brw_context *brw,
     */
    set_fast_clear_op(brw, GEN7_PS_RENDER_TARGET_FAST_CLEAR_ENABLE);
 
-   for (unsigned buf = 0; buf < fb->_NumColorDrawBuffers; buf++) {
-      struct gl_renderbuffer *rb = fb->_ColorDrawBuffers[buf];
-      struct intel_renderbuffer *irb = intel_renderbuffer(rb);
-      int index = fb->_ColorDrawBufferIndexes[buf];
+   while (fast_clear_buffers) {
+      int index = ffs(fast_clear_buffers) - 1;
 
-      if ((fast_clear_buffers & (1 << index)) == 0)
-         continue;
+      fast_clear_buffers &= ~(1 << index);
 
-
-      _mesa_framebuffer_renderbuffer(ctx, ctx->DrawBuffer,
-                                     GL_COLOR_ATTACHMENT0, rb,
-                                     "meta fast clear (per-attachment)");
+      _mesa_meta_drawbuffers_from_bitfield(1 << index);
 
       brw_draw_rectlist(ctx, &fast_clear_rect, MAX2(1, fb->MaxNumLayers));
 
       /* Now set the mcs we cleared to INTEL_FAST_CLEAR_STATE_CLEAR so we'll
        * resolve them eventually.
        */
+      struct gl_renderbuffer *rb = fb->_ColorDrawBuffers[0];
+      struct intel_renderbuffer *irb = intel_renderbuffer(rb);
       irb->mt->fast_clear_state = INTEL_FAST_CLEAR_STATE_CLEAR;
    }
 
    set_fast_clear_op(brw, 0);
-   use_rectlist(brw, false);
-
-   _mesa_DeleteFramebuffers(1, &fbo);
-   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, old_fb);
 }
 
 bool
