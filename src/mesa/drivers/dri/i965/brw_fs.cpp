@@ -2496,6 +2496,97 @@ fs_visitor::opt_sampler_eot()
    return true;
 }
 
+static int
+count_matching_tail(const struct fs_inst *a,
+                    const struct fs_inst *b)
+{
+   const fs_reg *tail_a = a->src + a->regs_written * 8 / a->exec_size;
+   const fs_reg *tail_b = b->src + b->regs_written * 8 / b->exec_size;
+   int matching_tail;
+
+   for (matching_tail = 0;
+        matching_tail < MIN2(a->regs_written, b->regs_written);
+        matching_tail++) {
+      tail_a--;
+      tail_b--;
+      if (!tail_a->equals(*tail_b))
+         break;
+   }
+
+   return matching_tail;
+}
+
+bool
+fs_visitor::opt_sends()
+{
+   /* SENDS is only supported on Gen9+ */
+   if (devinfo->gen < 9)
+      return false;
+
+   bool progress = false;
+
+   foreach_block_and_inst(block, fs_inst, inst, cfg) {
+      if (!inst->is_tex() ||
+          inst->header_size > 0)
+         continue;
+
+      fs_inst *load_payload = (fs_inst *) inst->prev;
+
+      if (load_payload->is_head_sentinel() ||
+          load_payload->opcode != SHADER_OPCODE_LOAD_PAYLOAD ||
+          !load_payload->dst.equals(inst->src[0]))
+         continue;
+
+      /* Look for an earlier LOAD_PAYLOAD instruction which shares the end of
+       * the this one. This assumes that once LOAD_PAYLOAD writes to a
+       * register nothing else will write to it.
+       */
+      fs_inst *best_match = NULL;
+      int best_match_count = 0;
+
+      foreach_inst_in_block(fs_inst, other_lp, block) {
+         if (other_lp == load_payload)
+            break;
+
+         if (other_lp->opcode != SHADER_OPCODE_LOAD_PAYLOAD ||
+             other_lp->header_size > 0)
+            continue;
+
+         int matching_tail = count_matching_tail(load_payload, other_lp);
+         if (matching_tail > best_match_count) {
+            best_match = other_lp;
+            best_match_count = matching_tail;
+         }
+      }
+
+      if (best_match == NULL)
+         continue;
+
+      int match_mlen = best_match_count * inst->exec_size / 8;
+
+      if (match_mlen <= inst->emlen ||
+          match_mlen >= inst->mlen + inst->emlen)
+         continue;
+
+      const fs_builder ibld(this, block, inst);
+
+      inst->resize_sources(3);
+      inst->src[2] = offset(best_match->dst,
+                            ibld,
+                            best_match->regs_written * 8 /
+                            best_match->exec_size -
+                            best_match_count);
+      inst->mlen = inst->mlen + inst->emlen - match_mlen;
+      inst->emlen = match_mlen;
+      progress = true;
+   }
+
+   if (progress)
+      invalidate_live_intervals();
+
+   return progress;
+}
+
 bool
 fs_visitor::opt_register_renaming()
 {
@@ -5124,6 +5215,7 @@ fs_visitor::optimize()
       OPT(opt_redundant_discard_jumps);
       OPT(opt_saturate_propagation);
       OPT(opt_zero_samples);
+      OPT(opt_sends);
       OPT(register_coalesce);
       OPT(compute_to_mrf);
       OPT(eliminate_find_live_channel);
