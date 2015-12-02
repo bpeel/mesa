@@ -238,6 +238,7 @@ fs_inst::equals(fs_inst *inst) const
            predicate == inst->predicate &&
            conditional_mod == inst->conditional_mod &&
            mlen == inst->mlen &&
+           emlen == inst->emlen &&
            base_mrf == inst->base_mrf &&
            target == inst->target &&
            eot == inst->eot &&
@@ -874,8 +875,15 @@ fs_inst::regs_read(int arg) const
       break;
 
    default:
-      if (is_tex() && arg == 0 && src[0].file == VGRF)
-         return mlen;
+      if (is_tex()) {
+         if (arg == 0) {
+            if (src[0].file == VGRF)
+               return mlen;
+         } else if (arg == 2) {
+            if (src[2].file == VGRF)
+               return emlen;
+         }
+      }
       break;
    }
 
@@ -2349,6 +2357,8 @@ fs_visitor::opt_zero_samples()
           load_payload->opcode != SHADER_OPCODE_LOAD_PAYLOAD)
          continue;
 
+      int total_mlen = inst->mlen + inst->emlen;
+
       /* We don't want to remove the message header or the first parameter.
        * Removing the first parameter is not allowed, see the Haswell PRM
        * volume 7, page 149:
@@ -2356,12 +2366,19 @@ fs_visitor::opt_zero_samples()
        *     "Parameter 0 is required except for the sampleinfo message, which
        *      has no parameter 0"
        */
-      while (inst->mlen > inst->header_size + inst->exec_size / 8 &&
-             load_payload->src[(inst->mlen - inst->header_size) /
+      while (total_mlen > inst->header_size + inst->exec_size / 8 &&
+             load_payload->src[(total_mlen - inst->header_size) /
                                (inst->exec_size / 8) +
                                inst->header_size - 1].is_zero()) {
-         inst->mlen -= inst->exec_size / 8;
+         total_mlen -= inst->exec_size / 8;
          progress = true;
+      }
+
+      if (total_mlen > inst->mlen) {
+         inst->emlen = total_mlen - inst->mlen;
+      } else {
+         inst->emlen = 0;
+         inst->mlen = total_mlen;
       }
    }
 
@@ -4642,6 +4659,9 @@ fs_visitor::dump_instruction(backend_instruction *be_inst, FILE *file)
 
    if (inst->mlen) {
       fprintf(file, "(mlen: %d) ", inst->mlen);
+   }
+   if (inst->emlen) {
+      fprintf(file, "(emlen: %d) ", inst->emlen);
    }
 
    switch (inst->dst.file) {

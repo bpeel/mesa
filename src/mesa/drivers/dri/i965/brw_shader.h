@@ -142,6 +142,7 @@ struct backend_instruction {
 
    uint32_t offset; /**< spill/unspill offset or texture offset bitfield */
    uint8_t mlen; /**< SEND message length */
+   uint8_t emlen; /**< extended message length for SENDS instruction */
    int8_t base_mrf; /**< First MRF in the SEND message, if mlen is nonzero. */
    uint8_t target; /**< MRT target. */
    uint8_t regs_written; /**< Number of registers written by the instruction. */

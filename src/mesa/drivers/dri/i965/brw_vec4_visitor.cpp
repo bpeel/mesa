@@ -53,6 +53,7 @@ vec4_instruction::vec4_instruction(enum opcode opcode, const dst_reg &dst,
    this->header_size = 0;
    this->flag_subreg = 0;
    this->mlen = 0;
+   this->emlen = 0;
    this->base_mrf = 0;
    this->offset = 0;
    this->annotation = NULL;

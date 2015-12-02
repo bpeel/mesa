@@ -677,7 +677,9 @@ fs_generator::generate_get_buffer_size(fs_inst *inst,
 }
 
 void
-fs_generator::generate_tex(fs_inst *inst, struct brw_reg dst, struct brw_reg src,
+fs_generator::generate_tex(fs_inst *inst, struct brw_reg dst,
+                           struct brw_reg src0,
+                           struct brw_reg src1,
                            struct brw_reg sampler_index)
 {
    int msg_type = -1;
@@ -880,7 +882,7 @@ fs_generator::generate_tex(fs_inst *inst, struct brw_reg dst, struct brw_reg src
    }
 
    assert(devinfo->gen < 7 || inst->header_size == 0 ||
-          src.file == BRW_GENERAL_REGISTER_FILE);
+          src0.file == BRW_GENERAL_REGISTER_FILE);
 
    assert(sampler_index.type == BRW_REGISTER_TYPE_UD);
 
@@ -891,12 +893,12 @@ fs_generator::generate_tex(fs_inst *inst, struct brw_reg dst, struct brw_reg src
    if (inst->header_size != 0) {
       if (devinfo->gen < 6 && !inst->offset) {
          /* Set up an implied move from g0 to the MRF. */
-         src = retype(brw_vec8_grf(0, 0), BRW_REGISTER_TYPE_UW);
+         src0 = retype(brw_vec8_grf(0, 0), BRW_REGISTER_TYPE_UW);
       } else {
          struct brw_reg header_reg;
 
          if (devinfo->gen >= 7) {
-            header_reg = src;
+            header_reg = src0;
          } else {
             assert(inst->base_mrf != -1);
             header_reg = brw_message_reg(inst->base_mrf);
@@ -931,7 +933,7 @@ fs_generator::generate_tex(fs_inst *inst, struct brw_reg dst, struct brw_reg src
       brw_SAMPLE(p,
                  retype(dst, BRW_REGISTER_TYPE_UW),
                  inst->base_mrf,
-                 src,
+                 src0,
                  sampler + base_binding_table_index,
                  sampler % 16,
                  msg_type,
@@ -962,7 +964,7 @@ fs_generator::generate_tex(fs_inst *inst, struct brw_reg dst, struct brw_reg src
 
       /* dst = send(offset, a0.0 | <descriptor>) */
       brw_inst *insn = brw_send_indirect_message(
-         p, BRW_SFID_SAMPLER, dst, src, addr);
+         p, BRW_SFID_SAMPLER, dst, src0, addr);
       brw_set_sampler_message(p, insn,
                               0 /* surface */,
                               0 /* sampler */,
@@ -978,9 +980,25 @@ fs_generator::generate_tex(fs_inst *inst, struct brw_reg dst, struct brw_reg src
        */
    }
 
+   if (inst->emlen > 0) {
+      brw_inst_set_emlen(p->devinfo,
+                         brw_last_inst,
+                         inst->emlen);
+      brw_set_src1_sends(p, brw_last_inst, src1);
+
+      brw_inst_set_sel_reg_32_desc(p->devinfo, brw_last_inst, 0);
+      brw_inst_set_sel_reg_32_ex_desc(p->devinfo, brw_last_inst, 0);
+
+      brw_inst_set_opcode(p->devinfo, brw_last_inst, BRW_OPCODE_SENDS);
+   }
+
    if (is_combined_send) {
       brw_inst_set_eot(p->devinfo, brw_last_inst, true);
-      brw_inst_set_opcode(p->devinfo, brw_last_inst, BRW_OPCODE_SENDC);
+      brw_inst_set_opcode(p->devinfo, brw_last_inst,
+                          brw_inst_opcode(p->devinfo,
+                                          brw_last_inst) == BRW_OPCODE_SENDS ?
+                          BRW_OPCODE_SENDSC :
+                          BRW_OPCODE_SENDC);
    }
 }
 
@@ -2062,7 +2080,7 @@ fs_generator::generate_code(const cfg_t *cfg, int dispatch_width)
       case SHADER_OPCODE_TG4:
       case SHADER_OPCODE_TG4_OFFSET:
       case SHADER_OPCODE_SAMPLEINFO:
-	 generate_tex(inst, dst, src[0], src[1]);
+	 generate_tex(inst, dst, src[0], src[2], src[1]);
 	 break;
       case FS_OPCODE_DDX_COARSE:
       case FS_OPCODE_DDX_FINE:

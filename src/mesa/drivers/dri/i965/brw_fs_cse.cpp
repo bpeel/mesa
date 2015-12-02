@@ -168,6 +168,7 @@ instructions_match(fs_inst *a, fs_inst *b, bool *negate)
           a->dst.type == b->dst.type &&
           a->offset == b->offset &&
           a->mlen == b->mlen &&
+          a->emlen == b->emlen &&
           a->regs_written == b->regs_written &&
           a->base_mrf == b->base_mrf &&
           a->eot == b->eot &&
