@@ -2497,23 +2497,30 @@ fs_visitor::opt_sampler_eot()
 }
 
 static int
-count_matching_tail(const struct fs_inst *a,
+count_matching_side(const struct fs_inst *a,
                     const struct fs_inst *b)
 {
    const fs_reg *tail_a = a->src + a->regs_written * 8 / a->exec_size;
    const fs_reg *tail_b = b->src + b->regs_written * 8 / b->exec_size;
-   int matching_tail;
+   int max_length = MIN2(a->regs_written, b->regs_written);
+   int matching_head, matching_tail;
 
-   for (matching_tail = 0;
-        matching_tail < MIN2(a->regs_written, b->regs_written);
-        matching_tail++) {
+   for (matching_tail = 0; matching_tail < max_length; matching_tail++) {
       tail_a--;
       tail_b--;
       if (!tail_a->equals(*tail_b))
          break;
    }
 
-   return matching_tail;
+   for (matching_head = 0; matching_head < max_length; matching_head++) {
+      if (!a->src[matching_head].equals(b->src[matching_head]))
+         break;
+   }
+
+   if (matching_tail > matching_head)
+      return matching_tail;
+   else
+      return -matching_head;
 }
 
 bool
@@ -2552,32 +2559,53 @@ fs_visitor::opt_sends()
              other_lp->header_size > 0)
             continue;
 
-         int matching_tail = count_matching_tail(load_payload, other_lp);
-         if (matching_tail > best_match_count) {
+         int matching_side = count_matching_side(load_payload, other_lp);
+         if (abs(matching_side) > abs(best_match_count)) {
             best_match = other_lp;
-            best_match_count = matching_tail;
+            best_match_count = matching_side;
          }
       }
 
       if (best_match == NULL)
          continue;
 
-      int match_mlen = best_match_count * inst->exec_size / 8;
+      int match_mlen = abs(best_match_count) * inst->exec_size / 8;
 
-      if (match_mlen <= inst->emlen ||
-          match_mlen >= inst->mlen + inst->emlen)
+      if (load_payload->dst.equals(inst->src[0])) {
+         if (match_mlen <= inst->emlen)
+            continue;
+      } else {
+         assert(load_payload->dst.equals(inst->src[2]));
+         if (match_mlen <= inst->mlen)
+            continue;
+      }
+
+      if (match_mlen >= inst->mlen + inst->emlen)
          continue;
 
       const fs_builder ibld(this, block, inst);
 
       inst->resize_sources(3);
-      inst->src[2] = offset(best_match->dst,
-                            ibld,
-                            best_match->regs_written * 8 /
-                            best_match->exec_size -
-                            best_match_count);
-      inst->mlen = inst->mlen + inst->emlen - match_mlen;
-      inst->emlen = match_mlen;
+
+      if (best_match_count < 0) {
+         inst->emlen = inst->mlen + inst->emlen - match_mlen;
+         inst->mlen = match_mlen;
+         inst->src[0] = best_match->dst;
+         inst->src[2] = offset(load_payload->dst,
+                               ibld,
+                               (load_payload->regs_written - inst->emlen) * 8 /
+                               load_payload->exec_size);
+      } else {
+         inst->src[0] = load_payload->dst;
+         inst->src[2] = offset(best_match->dst,
+                               ibld,
+                               best_match->regs_written * 8 /
+                               best_match->exec_size -
+                               best_match_count);
+         inst->mlen = inst->mlen + inst->emlen - match_mlen;
+         inst->emlen = match_mlen;
+      }
+
       progress = true;
    }
 
