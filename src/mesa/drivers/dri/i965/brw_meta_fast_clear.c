@@ -37,6 +37,8 @@
 #include "main/uniforms.h"
 #include "main/fbobject.h"
 #include "main/texobj.h"
+#include "main/format_unpack.h"
+#include "main/format_pack.h"
 
 #include "main/api_validate.h"
 #include "main/state.h"
@@ -397,43 +399,38 @@ set_fast_clear_color(struct brw_context *brw,
                      struct intel_mipmap_tree *mt,
                      const union gl_color_union *color)
 {
+   mesa_format linear_format = _mesa_get_srgb_format_linear(mt->format);
    union gl_color_union override_color = *color;
-
-   /* The sampler doesn't look at the format of the surface when the fast
-    * clear color is used so we need to implement luminance, intensity and
-    * missing components manually.
-    */
-   switch (_mesa_get_format_base_format(mt->format)) {
-   case GL_INTENSITY:
-      override_color.ui[3] = override_color.ui[0];
-      /* flow through */
-   case GL_LUMINANCE:
-   case GL_LUMINANCE_ALPHA:
-      override_color.ui[1] = override_color.ui[0];
-      override_color.ui[2] = override_color.ui[0];
-      break;
-   default:
-      for (int i = 0; i < 3; i++) {
-         if (!_mesa_format_has_color_component(mt->format, i))
-            override_color.ui[i] = 0;
-      }
-      break;
-   }
-
-   if (!_mesa_format_has_color_component(mt->format, 3)) {
-      if (_mesa_is_format_integer_color(mt->format))
-         override_color.ui[3] = 1;
-      else
-         override_color.f[3] = 1.0f;
-   }
+   union gl_color_union tmp_color;
 
    /* Handle linear→SRGB conversion */
-   if (brw->ctx.Color.sRGBEnabled &&
-       _mesa_get_srgb_format_linear(mt->format) != mt->format) {
+   if (brw->ctx.Color.sRGBEnabled && linear_format != mt->format) {
       for (int i = 0; i < 3; i++) {
          override_color.f[i] =
             util_format_linear_to_srgb_float(override_color.f[i]);
       }
+   }
+
+   /* Convert the clear color to the surface format and back so that the color
+    * returned when sampling is guaranteed to be a value that could be stored
+    * in the surface. For example if the surface is a luminance format and we
+    * clear to 0.5,0.75,0.1,0.2 we want the color to come back as
+    * 0.5,0.5,0.5,1.0. In general the hardware doesn't seem to look at the
+    * surface format when returning the clear color so we need to do this to
+    * implement luminance, intensity and missing components. However it does
+    * seem to look at it in some cases such as to clamp to the range [0,1] for
+    * unorm formats. Suprisingly however it doesn't clamp to [0,∞] for the
+    * special float formats that don't have a sign bit.
+    */
+   if (!_mesa_is_format_integer_color(linear_format)) {
+      _mesa_pack_float_rgba_row(linear_format,
+                                1, /* n_pixels */
+                                (const GLfloat (*)[4]) override_color.f,
+                                &tmp_color);
+      _mesa_unpack_rgba_row(linear_format,
+                            1, /* n_pixels */
+                            &tmp_color,
+                            (GLfloat (*)[4]) override_color.f);
    }
 
    if (brw->gen >= 9) {
