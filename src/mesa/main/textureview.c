@@ -344,6 +344,13 @@ _mesa_texture_view_compatible_format(const struct gl_context *ctx,
    if ((origViewClass == newViewClass) && origViewClass != false)
       return true;
 
+   if (ctx->Extensions.MESA_texture_view_rgb_32 &&
+       (origViewClass == GL_VIEW_CLASS_24_BITS ||
+        origViewClass == GL_VIEW_CLASS_32_BITS) &&
+       (newViewClass == GL_VIEW_CLASS_24_BITS ||
+        newViewClass == GL_VIEW_CLASS_32_BITS))
+      return true;
+
    return false;
 }
 

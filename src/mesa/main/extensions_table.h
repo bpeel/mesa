@@ -264,6 +264,7 @@ EXT(KHR_texture_compression_astc_ldr        , KHR_texture_compression_astc_ldr  
 
 EXT(MESA_pack_invert                        , MESA_pack_invert                       , GLL, GLC,  x ,  x , 2002)
 EXT(MESA_texture_signed_rgba                , EXT_texture_snorm                      , GLL, GLC,  x ,  x , 2009)
+EXT(MESA_texture_view_rgb_32                , MESA_texture_view_rgb_32               , GLL, GLC,  x ,  x , 2015)
 EXT(MESA_window_pos                         , dummy_true                             , GLL,  x ,  x ,  x , 2000)
 EXT(MESA_ycbcr_texture                      , MESA_ycbcr_texture                     , GLL, GLC,  x ,  x , 2002)
 
