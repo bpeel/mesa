@@ -335,6 +335,7 @@ intelInitExtensions(struct gl_context *ctx)
       ctx->Extensions.ARB_shader_texture_image_samples = true;
       ctx->Extensions.ARB_texture_compression_bptc = true;
       ctx->Extensions.ARB_texture_view = true;
+      ctx->Extensions.MESA_texture_view_rgb_32 = true;
       ctx->Extensions.ARB_shader_storage_buffer_object = true;
       ctx->Extensions.EXT_shader_samples_identical = true;
 
