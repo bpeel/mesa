@@ -25,6 +25,7 @@
 #ifndef BRW_VEC4_BUILDER_H
 #define BRW_VEC4_BUILDER_H
 
+#include <utility>
 #include "brw_ir_vec4.h"
 #include "brw_ir_allocator.h"
 
@@ -218,6 +219,19 @@ namespace brw {
       emit(const instruction &inst) const
       {
          return emit(new(shader->mem_ctx) instruction(inst));
+      }
+
+      /**
+       * Insert an instruction by constructing it directly inplace. This uses
+       * perfect forwarding magic from C++11 to forward the arguments to the
+       * constructor.
+       */
+      template<typename... Args>
+      instruction *
+      emit_emplace(Args&&... args) const
+      {
+         return emit(new(shader->mem_ctx)
+                     instruction(std::forward<Args>(args)...));
       }
 
       /**
