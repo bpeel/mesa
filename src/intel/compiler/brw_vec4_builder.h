@@ -240,7 +240,7 @@ namespace brw {
       instruction *
       emit(enum opcode opcode) const
       {
-         return emit(instruction(opcode));
+         return emit_emplace(opcode);
       }
 
       /**
@@ -249,7 +249,7 @@ namespace brw {
       instruction *
       emit(enum opcode opcode, const dst_reg &dst) const
       {
-         return emit(instruction(opcode, dst));
+         return emit_emplace(opcode, dst);
       }
 
       /**
@@ -267,11 +267,11 @@ namespace brw {
          case SHADER_OPCODE_SIN:
          case SHADER_OPCODE_COS:
             return fix_math_instruction(
-               emit(instruction(opcode, dst,
-                                fix_math_operand(src0))));
+               emit_emplace(opcode, dst,
+                            fix_math_operand(src0)));
 
          default:
-            return emit(instruction(opcode, dst, src0));
+            return emit_emplace(opcode, dst, src0);
          }
       }
 
@@ -287,12 +287,12 @@ namespace brw {
          case SHADER_OPCODE_INT_QUOTIENT:
          case SHADER_OPCODE_INT_REMAINDER:
             return fix_math_instruction(
-               emit(instruction(opcode, dst,
-                                fix_math_operand(src0),
-                                fix_math_operand(src1))));
+               emit_emplace(opcode, dst,
+                            fix_math_operand(src0),
+                            fix_math_operand(src1)));
 
          default:
-            return emit(instruction(opcode, dst, src0, src1));
+            return emit_emplace(opcode, dst, src0, src1);
          }
       }
 
@@ -308,13 +308,13 @@ namespace brw {
          case BRW_OPCODE_BFI2:
          case BRW_OPCODE_MAD:
          case BRW_OPCODE_LRP:
-            return emit(instruction(opcode, dst,
-                                    fix_3src_operand(src0),
-                                    fix_3src_operand(src1),
-                                    fix_3src_operand(src2)));
+            return emit_emplace(opcode, dst,
+                                fix_3src_operand(src0),
+                                fix_3src_operand(src1),
+                                fix_3src_operand(src2));
 
          default:
-            return emit(instruction(opcode, dst, src0, src1, src2));
+            return emit_emplace(opcode, dst, src0, src1, src2);
          }
       }
 
