@@ -1155,7 +1155,7 @@ vtn_get_builtin_location(struct vtn_builder *b,
       set_mode_system_value(mode);
       break;
    case SpvBuiltInBaseVertex:
-      *location = SYSTEM_VALUE_BASE_VERTEX;
+      *location = SYSTEM_VALUE_BASE_VERTEX_ID;
       set_mode_system_value(mode);
       break;
    case SpvBuiltInBaseInstance:
