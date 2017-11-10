@@ -2796,6 +2796,10 @@ brw_compile_vs(const struct brw_compiler *compiler, void *log_data,
       prog_data->uses_basevertex = true;
 
    if (shader->info.system_values_read &
+       BITFIELD64_BIT(SYSTEM_VALUE_BASE_VERTEX_ID))
+      prog_data->uses_basevertexid = true;
+
+   if (shader->info.system_values_read &
        BITFIELD64_BIT(SYSTEM_VALUE_BASE_INSTANCE))
       prog_data->uses_baseinstance = true;
 
