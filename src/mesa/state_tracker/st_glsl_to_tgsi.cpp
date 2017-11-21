@@ -5385,6 +5385,11 @@ _mesa_sysval_to_semantic(unsigned sysval)
    case SYSTEM_VALUE_VERTEX_ID_ZERO_BASE:
       return TGSI_SEMANTIC_VERTEXID_NOBASE;
    case SYSTEM_VALUE_BASE_VERTEX:
+   case SYSTEM_VALUE_BASE_VERTEX_ID:
+      /* FIXME: This two values are actually supposed to be different. The one
+       * used for gl_BaseVertex is supposed to be zero when a non-indexed draw
+       * call is used.
+       */
       return TGSI_SEMANTIC_BASEVERTEX;
    case SYSTEM_VALUE_BASE_INSTANCE:
       return TGSI_SEMANTIC_BASEINSTANCE;
